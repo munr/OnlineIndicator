@@ -47,6 +47,9 @@ private let iconSets: [IconSet] = [
     IconSet(name: "Bell",        connectedSymbol: "bell.fill",                           blockedSymbol: "bell.badge",                         noNetworkSymbol: "bell.slash"),
     IconSet(name: "Flag",        connectedSymbol: "flag.fill",                           blockedSymbol: "flag.fill",                          noNetworkSymbol: "flag.slash"),
     IconSet(name: "Power",       connectedSymbol: "power.circle.fill",                        blockedSymbol: "powerplug.fill",                          noNetworkSymbol: "power"),
+    IconSet(name: "Hands",       connectedSymbol: "hand.thumbsup.fill",                        blockedSymbol: "hand.raised.fill",                          noNetworkSymbol: "hand.thumbsdown.fill"),
+    IconSet(name: "Star",       connectedSymbol: "star.fill",                        blockedSymbol: "star.leadinghalf.filled",                          noNetworkSymbol: "star.slash.fill"),
+
 ]
 
 // MARK: - Icon Set Browser
