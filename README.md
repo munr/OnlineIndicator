@@ -9,13 +9,9 @@ A macOS menu bar app that replaces the Wi-Fi icon with customisable status indic
 </p>
 <br>
 <p align="center">
-  <img src="https://img.shields.io/github/v/release/bornexplorer/OnlineIndicator?label=release&color=e05d44">
-  <img src="https://img.shields.io/badge/platform-macOS-lightgrey?logo=apple">
-  <img src="https://img.shields.io/github/license/bornexplorer/OnlineIndicator?color=44cc11">
-  <!--
-  <img src="https://img.shields.io/github/downloads/bornexplorer/OnlineIndicator/total?label=downloads&color=e05d44">
-  <img src="https://img.shields.io/github/stars/bornexplorer/OnlineIndicator?color=e05d44">
-  -->
+  <img src="https://img.shields.io/github/v/release/bornexplorer/OnlineIndicator?style=flat&color=%23FE9325">
+  <img src="https://img.shields.io/badge/platform-macOS-lightgrey?logo=apple&style=flat">
+  <img src="https://img.shields.io/github/license/bornexplorer/OnlineIndicator?style=flat">
 </p>
 
 <br>
@@ -34,10 +30,10 @@ The macOS WiFi icon only shows that you are connected to a router, not whether y
 Your menu bar deserves better than a grey Wi-Fi symbol that tells you nothing. Online Indicator replaces it with a live status icon that actually means something: <br>
 - Green when you're online <br>
 - Yellow when something's off <br>
-- Red when you're out
+- Red when there's no network
 
 🎨 **Make it yours** <br>
-Choose any SF Symbol as your icon, pick any colour for each state, add a custom text label that shows right in the menu bar, or apply one of 15 ready-made Icon Sets to change the whole look in a single tap.
+Choose from 17 ready made Icon Sets or use any SF Symbol, set custom colours and labels for each state, and save your setup as your own Icon Set to switch anytime with a single tap.
 
 📡 **Flexible monitoring** <br>
 Choose any URL to ping and set how often the check runs, from every 30 seconds to once an hour.
