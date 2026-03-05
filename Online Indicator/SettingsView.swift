@@ -462,7 +462,7 @@ struct SettingsView: View {
                         
                         VStack(spacing: 0) {
                             HStack(spacing: 10) {
-                                // Icon Sets button — always visible
+
                                 Button {
                                     showSymbolBrowser = true
                                 } label: {
@@ -529,7 +529,6 @@ struct SettingsView: View {
                             .padding(.horizontal, 14)
                             .padding(.vertical, 10)
 
-                            // ── Inline save panel ─────────────────────────────
                             if showSaveSetPanel {
                                 Divider().padding(.horizontal, 14)
 
@@ -762,7 +761,6 @@ private struct IconSlotRow: View {
 
             VStack(alignment: .leading, spacing: 10) {
 
-                // ── SF Symbol Name ──────────────────────────────────────
                 VStack(alignment: .leading, spacing: 4) {
                     Text("SF Symbol Name")
                         .font(.system(size: 11, weight: .medium))
