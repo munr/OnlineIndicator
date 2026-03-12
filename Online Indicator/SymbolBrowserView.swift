@@ -222,7 +222,7 @@ struct SymbolBrowserView: View {
                     VStack(alignment: .leading, spacing: 3) {
                         Text("Icon Sets")
                             .font(.system(size: 14, weight: .semibold))
-                        Text("Pick a set or customise each state with your own SF Symbols and colours in Appearance.")
+                        Text("Choose a set or customize each state with your own SF Symbols and colors in Appearance.")
                             .font(.system(size: 11))
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -266,7 +266,7 @@ struct SymbolBrowserView: View {
                 Image(systemName: "hand.tap")
                     .font(.system(size: 11))
                     .foregroundStyle(.tertiary)
-                Text("Tap a set to apply it to all three states at once")
+                Text("Click a set to apply it to all three states at once")
                     .font(.system(size: 11))
                     .foregroundStyle(.tertiary)
             }
@@ -319,7 +319,7 @@ struct SymbolBrowserView: View {
                     Text("No saved sets yet")
                         .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(.primary)
-                    Text("Use \"Save edits as new Set\" in the Appearance tab\nto save your current icon configuration.")
+                    Text("Use \"Save edits as new set\" in the Appearance tab\nto save your current icon configuration.")
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -333,7 +333,7 @@ struct SymbolBrowserView: View {
                     VStack(spacing: 0) {
                         ForEach(Array(store.sets.enumerated()), id: \.element.id) { index, set in
                             UserSetRow(set: set) {
-                                // Tap-to-apply: applies all slots including menuLabel
+                                // Click-to-apply: applies all slots including menuLabel
                                 let (c, b, n) = set.toSlots()
                                 onSelect(c, b, n)
                                 dismiss()
@@ -396,7 +396,7 @@ private struct IconSetRow: View {
     }
 }
 
-// MARK: - User Set Row (tap anywhere to apply; trash icon to delete immediately)
+// MARK: - User Set Row (click anywhere to apply; trash icon to delete immediately)
 
 private struct UserSetRow: View {
 

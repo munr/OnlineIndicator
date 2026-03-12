@@ -407,7 +407,7 @@ struct SettingsView: View {
                     VStack(spacing: 0) {
                         IconSlotRow(
                             label: "Connected",
-                            statusDescription: "Internet access is available, and this Mac is online",
+                            statusDescription: "Internet access is available and this Mac is online",
                             defaultSlot: IconPreferences.defaultSlot(for: .connected),
                             slot: $connectedSlot,
                             onChange: {

@@ -16,6 +16,22 @@ class UpdateChecker {
         case error(String)
     }
 
+    private static func isNewer(_ remote: String, than local: String) -> Bool {
+        let remoteComponents = remote.split(separator: ".").compactMap { Int($0) }
+        let localComponents  = local.split(separator: ".").compactMap { Int($0) }
+        let maxLength = max(remoteComponents.count, localComponents.count)
+
+        for i in 0..<maxLength {
+            let remoteValue = i < remoteComponents.count ? remoteComponents[i] : 0
+            let localValue  = i < localComponents.count  ? localComponents[i]  : 0
+
+            if remoteValue > localValue { return true  }
+            if remoteValue < localValue { return false }
+        }
+
+        return false
+    }
+
     static func check(completion: @escaping (UpdateResult) -> Void) {
         guard let url = apiURL else {
             completion(.error("Invalid repository URL"))
@@ -58,7 +74,7 @@ class UpdateChecker {
                 let remoteVersion = tag.hasPrefix("v") ? String(tag.dropFirst()) : tag
                 let localVersion  = AppInfo.marketingVersion
 
-                guard remoteVersion != localVersion else {
+                guard isNewer(remoteVersion, than: localVersion) else {
                     completion(.upToDate)
                     return
                 }

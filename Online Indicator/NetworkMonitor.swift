@@ -18,5 +18,7 @@ class NetworkMonitor {
         }
 
         monitor.start(queue: queue)
+        
+        isConnected = monitor.currentPath.status == .satisfied
     }
 }

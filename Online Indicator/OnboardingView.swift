@@ -28,7 +28,7 @@ struct OnboardingView: View {
                     Text("Online Indicator")
                         .font(.system(size: 22, weight: .bold, design: .rounded))
 
-                    Text("Monitors your connection and shows live\nstatus in the menu bar & always in sight.")
+                    Text("Monitors your connection and displays real time status\nin the menu bar so it is always visible.")
                         .font(.system(size: 13))
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
