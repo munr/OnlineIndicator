@@ -171,34 +171,41 @@ final class MenuBuilder: NSObject {
             let isSecured   = profile.security != .none
 
             let item = NSMenuItem(title: ssid, action: #selector(openWiFiSettings), keyEquivalent: "")
-            item.target    = self
-            item.tag       = knownNetworksTag + 1
-            item.isEnabled = !isConnected
+            item.target = self
+            item.tag    = knownNetworksTag + 1
 
-            let baseConfig = NSImage.SymbolConfiguration(pointSize: 13, weight: .medium)
-            let imageConfig = isConnected
-                ? baseConfig.applying(NSImage.SymbolConfiguration(paletteColors: [.systemBlue]))
-                : baseConfig
-            item.image = NSImage(systemSymbolName: "wifi", accessibilityDescription: nil)?
-                .withSymbolConfiguration(imageConfig)
+            let wifiSymbol = isConnected ? "wifi.circle.fill" : "wifi"
+            let wifiConfig = NSImage.SymbolConfiguration(pointSize: 15, weight: .medium)
+                .applying(.init(paletteColors: isConnected ? [.white, .systemBlue] : [.secondaryLabelColor]))
+            item.image = NSImage(systemSymbolName: wifiSymbol, accessibilityDescription: nil)?
+                .withSymbolConfiguration(wifiConfig)
 
+            // Omitting .foregroundColor lets AppKit handle white-on-selection automatically.
+            let nameFont = NSFont.systemFont(ofSize: 13, weight: isConnected ? .semibold : .regular)
             let title = NSMutableAttributedString()
-            title.append(NSAttributedString(string: ssid, attributes: [
-                .font:            NSFont.systemFont(ofSize: 13, weight: isConnected ? .semibold : .regular),
-                .foregroundColor: NSColor.labelColor
-            ]))
 
             if isSecured {
-                title.append(NSAttributedString(string: "  "))
-                let lockAttachment = NSTextAttachment()
-                let lockConfig = NSImage.SymbolConfiguration(pointSize: 9, weight: .medium)
-                lockAttachment.image = NSImage(systemSymbolName: "lock.fill", accessibilityDescription: "Secured")?
+                // Right-align the lock badge by tabbing to the far end of the title area.
+                let paraStyle = NSMutableParagraphStyle()
+                paraStyle.tabStops = [NSTextTab(textAlignment: .right, location: 195)]
+
+                title.append(NSAttributedString(string: ssid + "\t",
+                                                attributes: [.font: nameFont,
+                                                             .paragraphStyle: paraStyle]))
+
+                let lockConfig = NSImage.SymbolConfiguration(pointSize: 10, weight: .medium)
+                let lockImage  = NSImage(systemSymbolName: "lock.fill", accessibilityDescription: "Secured")?
                     .withSymbolConfiguration(lockConfig)
+                lockImage?.isTemplate = true  // renders in the current text color, turns white on selection
+                let lockAttachment        = NSTextAttachment()
+                lockAttachment.image      = lockImage
+                lockAttachment.bounds     = CGRect(x: 0, y: -1, width: 10, height: 12)
                 let lockStr = NSMutableAttributedString(attachment: lockAttachment)
-                lockStr.addAttribute(.foregroundColor,
-                                     value: NSColor.tertiaryLabelColor,
+                lockStr.addAttribute(.paragraphStyle, value: paraStyle,
                                      range: NSRange(location: 0, length: lockStr.length))
                 title.append(lockStr)
+            } else {
+                title.append(NSAttributedString(string: ssid, attributes: [.font: nameFont]))
             }
 
             item.attributedTitle = title
