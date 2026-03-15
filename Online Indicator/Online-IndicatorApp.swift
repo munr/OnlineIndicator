@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import CoreWLAN
 
 @main
 struct OnlineIndicatorApp: App {
@@ -23,8 +24,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWindowDele
     private var launchPopover: NSPopover?
 
     private var menuHeaderView: MenuHeaderView?
+    private var wifiMenuItem: NSMenuItem?
     private var ipv4MenuItem: NSMenuItem?
     private var ipv6MenuItem: NSMenuItem?
+
+    /// Tag used to identify dynamically inserted "Known Networks" items so they can be replaced on each open.
+    private let knownNetworksTag = 900
 
     private var currentStatus: AppState.ConnectionStatus = .noNetwork
     private var lastIPv4: String?
@@ -86,6 +91,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWindowDele
         lastIPv4 = addresses.ipv4
         lastIPv6 = addresses.ipv6
 
+        wifiMenuItem?.attributedTitle = ipAttributedString(
+            label: "WiFi",
+            value: addresses.wifiName ?? "Unavailable",
+            available: addresses.wifiName != nil
+        )
         ipv4MenuItem?.attributedTitle = ipAttributedString(
             label: "IPv4",
             value: addresses.ipv4 ?? "Unavailable",
@@ -96,6 +106,129 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWindowDele
             value: addresses.ipv6 ?? "Unavailable",
             available: addresses.ipv6 != nil
         )
+
+        // TODO: Re-enable once Known Networks feature is ready
+        // refreshKnownNetworks(currentSSID: addresses.wifiName)
+    }
+
+    // MARK: - Known Networks
+
+    private func refreshKnownNetworks(currentSSID: String?) {
+        guard let menu = statusItem.menu else { return }
+
+        // Remove previously inserted dynamic items (identified by tag)
+        while let old = menu.items.first(where: { $0.tag == knownNetworksTag + 1 }) {
+            menu.removeItem(old)
+        }
+
+        // Find the anchor separator
+        guard let anchorIndex = menu.items.firstIndex(where: { $0.tag == knownNetworksTag }) else { return }
+
+        guard let iface = CWWiFiClient.shared().interface(),
+              let config = iface.configuration(),
+              let profiles = config.networkProfiles.array as? [CWNetworkProfile],
+              !profiles.isEmpty else { return }
+
+        // Get SSIDs of networks currently in range from the scan cache
+        let nearbySSIDs: Set<String>
+        if let cached = iface.cachedScanResults() {
+            nearbySSIDs = Set(cached.compactMap { $0.ssid })
+        } else {
+            nearbySSIDs = []
+        }
+
+        // Filter to saved networks that are in range (always include the connected one)
+        let visibleProfiles = profiles.filter { profile in
+            guard let ssid = profile.ssid else { return false }
+            if let currentSSID, ssid == currentSSID { return true }
+            return nearbySSIDs.contains(ssid)
+        }
+
+        guard !visibleProfiles.isEmpty else { return }
+
+        var insertionIndex = anchorIndex
+
+        // Section header — uses a custom view to avoid the image column indent
+        let headerLabel = NSTextField(labelWithString: "Known Networks")
+        headerLabel.font = .systemFont(ofSize: 11, weight: .semibold)
+        headerLabel.textColor = .secondaryLabelColor
+        headerLabel.sizeToFit()
+        let headerView = NSView(frame: NSRect(x: 0, y: 0, width: 260, height: headerLabel.frame.height + 8))
+        headerLabel.frame.origin = NSPoint(x: 14, y: 4)
+        headerView.addSubview(headerLabel)
+        let headerItem = NSMenuItem()
+        headerItem.view = headerView
+        headerItem.isEnabled = false
+        headerItem.tag = knownNetworksTag + 1
+        menu.insertItem(headerItem, at: insertionIndex)
+        insertionIndex += 1
+
+        // Network rows
+        for profile in visibleProfiles {
+            guard let ssid = profile.ssid else { continue }
+
+            let isConnected = currentSSID != nil && ssid == currentSSID
+            let isSecured = profile.security != .none
+
+            let item = NSMenuItem(title: ssid, action: #selector(openWiFiSettings), keyEquivalent: "")
+            item.target = self
+            item.tag = knownNetworksTag + 1
+
+            // Disable the currently connected network
+            item.isEnabled = !isConnected
+
+            // Wi-Fi icon
+            let symbolConfig = NSImage.SymbolConfiguration(pointSize: 13, weight: .medium)
+            if let image = NSImage(systemSymbolName: "wifi", accessibilityDescription: nil)?
+                .withSymbolConfiguration(symbolConfig) {
+                if isConnected {
+                    // Tint the icon blue like macOS does for the active network
+                    let tinted = image.copy() as! NSImage
+                    tinted.lockFocus()
+                    NSColor.systemBlue.set()
+                    NSRect(origin: .zero, size: tinted.size).fill(using: .sourceAtop)
+                    tinted.unlockFocus()
+                    tinted.isTemplate = false
+                    item.image = tinted
+                } else {
+                    item.image = image
+                }
+            }
+
+            // Build the title: bold for connected, regular for others; append lock if secured
+            let title = NSMutableAttributedString()
+
+            let nameAttrs: [NSAttributedString.Key: Any] = [
+                .font: NSFont.systemFont(ofSize: 13, weight: isConnected ? .semibold : .regular),
+                .foregroundColor: NSColor.labelColor
+            ]
+            title.append(NSAttributedString(string: ssid, attributes: nameAttrs))
+
+            if isSecured {
+                title.append(NSAttributedString(string: "  "))
+                let lockAttachment = NSTextAttachment()
+                let lockConfig = NSImage.SymbolConfiguration(pointSize: 9, weight: .medium)
+                lockAttachment.image = NSImage(systemSymbolName: "lock.fill", accessibilityDescription: "Secured")?
+                    .withSymbolConfiguration(lockConfig)
+                let lockStr = NSMutableAttributedString(attachment: lockAttachment)
+                lockStr.addAttribute(.foregroundColor, value: NSColor.tertiaryLabelColor, range: NSRange(location: 0, length: lockStr.length))
+                title.append(lockStr)
+            }
+
+            item.attributedTitle = title
+
+            menu.insertItem(item, at: insertionIndex)
+            insertionIndex += 1
+        }
+
+        // Trailing separator after the network list
+        let trailingSep = NSMenuItem.separator()
+        trailingSep.tag = knownNetworksTag + 1
+        menu.insertItem(trailingSep, at: insertionIndex)
+    }
+
+    @objc private func openWiFiSettings() {
+        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.wifi-settings-extension")!)
     }
 
     // MARK: - Menu Setup
@@ -117,6 +250,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWindowDele
 
         menu.addItem(.separator())
 
+        let wifiItem = NSMenuItem(title: "", action: #selector(openWiFiSettings), keyEquivalent: "")
+        wifiItem.target = self
+        wifiItem.toolTip = "Click to open Wi-Fi Settings"
+        wifiItem.attributedTitle = ipAttributedString(label: "WiFi", value: "Loading…", available: false)
+        wifiMenuItem = wifiItem
+        menu.addItem(wifiItem)
+
         let ipv4Item = NSMenuItem(title: "", action: #selector(copyIPv4), keyEquivalent: "")
         ipv4Item.target = self
         ipv4Item.toolTip = "Click to copy"
@@ -132,6 +272,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWindowDele
         menu.addItem(ipv6Item)
 
         menu.addItem(.separator())
+
+        // Known networks items are inserted dynamically here each time the menu opens.
+        // A tagged separator marks the insertion point.
+        // TODO: Re-enable once Known Networks feature is ready
+        // let knownNetworksAnchor = NSMenuItem.separator()
+        // knownNetworksAnchor.tag = knownNetworksTag
+        // menu.addItem(knownNetworksAnchor)
 
         let settingsItem = NSMenuItem(title: "Settings", action: #selector(openSettings), keyEquivalent: "")
         settingsItem.target = self
