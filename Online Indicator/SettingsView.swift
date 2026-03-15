@@ -27,6 +27,7 @@ struct SettingsView: View {
     @State private var updateStatus: UpdateStatus = .idle
     @State private var cachedUpdateURL: URL?
     @State private var showChangelog = false
+    @State private var lastCheckDate: Date? = UserDefaults.standard.object(for: .lastUpdateCheck) as? Date
 
     @State private var connectedSlot     = IconPreferences.slot(for: .connected)
     @State private var blockedSlot       = IconPreferences.slot(for: .blocked)
@@ -252,7 +253,7 @@ struct SettingsView: View {
                         icon: "arrow.down.circle.fill",
                         iconColor: .blue,
                         title: "Check for Updates",
-                        subtitle: "Version \(AppInfo.marketingVersion) (Build \(AppInfo.buildVersion))"
+                        subtitle: updateRowSubtitle
                     ) {
                         
                         HStack(spacing: 8) {
@@ -768,9 +769,35 @@ struct SettingsView: View {
         }
     }
 
+    private var updateRowSubtitle: String {
+        let version = "Version \(AppInfo.marketingVersion) (Build \(AppInfo.buildVersion))"
+        guard let date = lastCheckDate else { return version }
+        return "\(version)\n\(formattedCheckDate(date))"
+    }
+
+    private func formattedCheckDate(_ date: Date) -> String {
+        let calendar = Calendar.current
+        let timeFormatter = DateFormatter()
+        timeFormatter.dateFormat = "h:mm a"
+        let timeString = timeFormatter.string(from: date)
+
+        if calendar.isDateInToday(date) {
+            return "Checked today at \(timeString)"
+        } else if calendar.isDateInYesterday(date) {
+            return "Checked yesterday at \(timeString)"
+        } else {
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "MMM d"
+            return "Checked \(dateFormatter.string(from: date))"
+        }
+    }
+
     private func checkForUpdates() {
         withAnimation { updateStatus = .checking }
         UpdateChecker.check { result in
+            let now = Date()
+            UserDefaults.standard.set(now, for: .lastUpdateCheck)
+            lastCheckDate = now
             withAnimation {
                 applyUpdateResult(result, autoDismiss: true)
             }
