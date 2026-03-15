@@ -217,7 +217,8 @@ struct SettingsView: View {
                         icon: "arrow.clockwise.circle.fill",
                         iconColor: .red,
                         title: "Launch at Login",
-                        subtitle: "Opens automatically when your Mac starts up"
+                        subtitle: "Opens automatically when your Mac starts up",
+                        onTap: { isLaunchEnabled.toggle() }
                     ) {
                         Toggle("", isOn: $isLaunchEnabled)
                             .labelsHidden()
@@ -235,7 +236,8 @@ struct SettingsView: View {
                         icon: "wifi",
                         iconColor: .teal,
                         title: "Show Known Networks",
-                        subtitle: "Display nearby saved Wi-Fi networks in the menu"
+                        subtitle: "Display nearby saved Wi-Fi networks in the menu",
+                        onTap: { showKnownNetworks.toggle() }
                     ) {
                         Toggle("", isOn: $showKnownNetworks)
                             .labelsHidden()
@@ -1004,7 +1006,10 @@ private struct SettingsRow<Control: View>: View {
     let iconColor: Color
     let title: String
     let subtitle: String
+    var onTap: (() -> Void)? = nil
     @ViewBuilder let control: Control
+
+    @State private var isHovered = false
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
@@ -1031,5 +1036,13 @@ private struct SettingsRow<Control: View>: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 11)
+        .background(onTap != nil && isHovered ? Color.primary.opacity(0.04) : Color.clear)
+        .contentShape(Rectangle())
+        .onHover { hovering in
+            if onTap != nil { isHovered = hovering }
+        }
+        .onTapGesture {
+            onTap?()
+        }
     }
 }
