@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
 
 jobs:
   build:
@@ -22,29 +23,15 @@ jobs:
             -scheme "Online Indicator" \
             -configuration Release \
             -archivePath "${{ github.workspace }}/build/OnlineIndicator.xcarchive" \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGN_STYLE=Manual \
+            PROVISIONING_PROFILE_SPECIFIER=""
 
-      - name: Export Archive
+      - name: Extract App from Archive
         run: |
-          cat > /tmp/ExportOptions.plist << 'EOF'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key>
-            <string>mac-application</string>
-          </dict>
-          </plist>
-          EOF
-          xcodebuild -exportArchive \
-            -archivePath "${{ github.workspace }}/build/OnlineIndicator.xcarchive" \
-            -exportPath "${{ github.workspace }}/build/export" \
-            -exportOptionsPlist /tmp/ExportOptions.plist \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO
+          mkdir -p "${{ github.workspace }}/build/export"
+          cp -r "${{ github.workspace }}/build/OnlineIndicator.xcarchive/Products/Applications/Online Indicator.app" \
+                "${{ github.workspace }}/build/export/Online Indicator.app"
 
       - name: Install create-dmg
         run: brew install create-dmg
