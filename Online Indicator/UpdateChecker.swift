@@ -4,7 +4,7 @@ import AppKit
 class UpdateChecker {
 
     static let repoOwner = "munr"
-    static let repoName  = "OnlineIndicator"
+    static let repoName  = "mac-online-indicator"
 
     private static var apiURL: URL? {
         URL(string: "https://api.github.com/repos/\(repoOwner)/\(repoName)/releases/latest")
