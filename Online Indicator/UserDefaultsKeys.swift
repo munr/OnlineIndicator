@@ -13,8 +13,6 @@ extension UserDefaults {
         case lastUpdateNotes    = "lastUpdateNotes"
         case lastUpdateDownload = "lastUpdateDownload"
         case lastUpdatePage     = "lastUpdatePage"
-        // Speed monitor
-        case speedTestInterval  = "speedTestInterval"
     }
 
     func string(for key: Key) -> String? { string(forKey: key.rawValue) }

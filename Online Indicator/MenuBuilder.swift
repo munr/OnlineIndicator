@@ -14,9 +14,7 @@ final class MenuBuilder: NSObject {
     private var ipv6MenuItem:     NSMenuItem?
     private var gatewayMenuItem:  NSMenuItem?
     private var pingMenuItem:        NSMenuItem?
-    private var downloadMenuItem:    NSMenuItem?
-    private var uploadMenuItem:      NSMenuItem?
-    private var speedUpdatedMenuItem: NSMenuItem?
+    private var speedMenuItem:       NSMenuItem?
 
     private let dnsTag = 800
 
@@ -26,6 +24,7 @@ final class MenuBuilder: NSObject {
     private(set) var lastDNSServers: [String] = []
 
     private let knownNetworksTag = 900
+
     
     private var shouldShowKnownNetworks: Bool {
         UserDefaults.standard.bool(for: .showKnownNetworks, default: true)
@@ -102,24 +101,12 @@ final class MenuBuilder: NSObject {
         pingMenuItem = pingItem
         m.addItem(pingItem)
 
-        let dlItem = NSMenuItem(title: "", action: #selector(refreshSpeed), keyEquivalent: "")
-        dlItem.target          = self
-        dlItem.toolTip         = "Click to refresh"
-        dlItem.attributedTitle = ipAttributedString(label: "Down", value: "—", available: false)
-        downloadMenuItem = dlItem
-        m.addItem(dlItem)
-
-        let ulItem = NSMenuItem(title: "", action: #selector(refreshSpeed), keyEquivalent: "")
-        ulItem.target          = self
-        ulItem.toolTip         = "Click to refresh"
-        ulItem.attributedTitle = ipAttributedString(label: "Up  ", value: "—", available: false)
-        uploadMenuItem = ulItem
-        m.addItem(ulItem)
-
-        let updatedItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
-        updatedItem.isEnabled = false
-        speedUpdatedMenuItem = updatedItem
-        m.addItem(updatedItem)
+        let speedItem = NSMenuItem(title: "", action: #selector(refreshSpeed), keyEquivalent: "")
+        speedItem.target          = self
+        speedItem.toolTip         = "Click to refresh"
+        speedItem.attributedTitle = combinedSpeedAttributedString(download: nil, upload: nil, updating: false)
+        speedMenuItem = speedItem
+        m.addItem(speedItem)
 
         m.addItem(.separator())
 
@@ -210,54 +197,49 @@ final class MenuBuilder: NSObject {
         }
     }
 
+    // MARK: - Speed Reset
+
+    func clearSpeedSnapshot() {
+        pingMenuItem?.attributedTitle  = ipAttributedString(label: "Ping", value: "—", available: false)
+        speedMenuItem?.attributedTitle = combinedSpeedAttributedString(download: nil, upload: nil, updating: false)
+    }
+
+    // MARK: - Speed Measuring State
+
+    private var isMeasuringSpeed = false
+
+    func setSpeedMeasuring(_ measuring: Bool) {
+        isMeasuringSpeed = measuring
+        guard measuring else { return }
+        speedMenuItem?.attributedTitle = combinedSpeedAttributedString(download: nil, upload: nil, updating: true)
+    }
+
     // MARK: - Speed Snapshot Update
 
     func updateSpeedSnapshot(_ snapshot: NetworkSpeedMonitor.Snapshot) {
+        // Ping is independent — update it immediately whenever it arrives.
         pingMenuItem?.attributedTitle = ipAttributedString(
             label: "Ping",
             value: snapshot.pingMs.map { String(format: "%.0f ms", $0) } ?? "—",
             available: snapshot.pingMs != nil
         )
-        downloadMenuItem?.attributedTitle = ipAttributedString(
-            label: "Down",
-            value: snapshot.downloadMbps.map { formatSpeed($0) } ?? "—",
-            available: snapshot.downloadMbps != nil
+        // Skip speed row while a test is in flight to keep "Updating…" visible.
+        guard !isMeasuringSpeed else { return }
+        speedMenuItem?.attributedTitle = combinedSpeedAttributedString(
+            download: snapshot.downloadMbps,
+            upload:   snapshot.uploadMbps,
+            updating: false
         )
-        uploadMenuItem?.attributedTitle = ipAttributedString(
-            label: "Up  ",
-            value: snapshot.uploadMbps.map { formatSpeed($0) } ?? "—",
-            available: snapshot.uploadMbps != nil
-        )
-        speedUpdatedMenuItem?.attributedTitle = updatedAttributedString(date: Date())
     }
 
-    private func updatedAttributedString(date: Date) -> NSAttributedString {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .none
-        formatter.timeStyle = .short
-        let timeStr = formatter.string(from: date)
-
-        let calendar = Calendar.current
-        let dateStr: String
-        if calendar.isDateInToday(date) {
-            dateStr = "Today"
-        } else if calendar.isDateInYesterday(date) {
-            dateStr = "Yesterday"
-        } else {
-            let df = DateFormatter()
-            df.dateStyle = .medium
-            df.timeStyle = .none
-            dateStr = df.string(from: date)
+    private func combinedSpeedAttributedString(download: Double?, upload: Double?, updating: Bool) -> NSAttributedString {
+        if updating {
+            return ipAttributedString(label: "Speed", value: "Updating…", available: false, spacer: "  ")
         }
-
-        let para = NSMutableParagraphStyle()
-        para.paragraphSpacingBefore = 4
-
-        return NSAttributedString(string: "Updated \(dateStr) at \(timeStr)", attributes: [
-            .font:            NSFont.systemFont(ofSize: 10),
-            .foregroundColor: NSColor.tertiaryLabelColor,
-            .paragraphStyle:  para
-        ])
+        guard let dl = download, let ul = upload else {
+            return ipAttributedString(label: "Speed", value: "—", available: false, spacer: "  ")
+        }
+        return ipAttributedString(label: "Speed", value: "↓ \(formatSpeed(dl))  ↑ \(formatSpeed(ul))", available: true, spacer: "  ")
     }
 
     private func formatSpeed(_ mbps: Double) -> String {
@@ -410,6 +392,8 @@ final class MenuBuilder: NSObject {
     }
 
     @objc private func refreshSpeed() {
+        pingMenuItem?.attributedTitle  = ipAttributedString(label: "Ping", value: "Updating…", available: false)
+        speedMenuItem?.attributedTitle = combinedSpeedAttributedString(download: nil, upload: nil, updating: true)
         onRefreshSpeed?()
     }
 
@@ -418,13 +402,13 @@ final class MenuBuilder: NSObject {
 
     // MARK: - IP attributed string
 
-    private func ipAttributedString(label: String, value: String, available: Bool) -> NSAttributedString {
+    private func ipAttributedString(label: String, value: String, available: Bool, labelFontSize: CGFloat = 11, spacer: String = "   ") -> NSAttributedString {
         let result = NSMutableAttributedString()
         result.append(NSAttributedString(string: label, attributes: [
-            .font:            NSFont.monospacedSystemFont(ofSize: 11, weight: .semibold),
+            .font:            NSFont.monospacedSystemFont(ofSize: labelFontSize, weight: .semibold),
             .foregroundColor: NSColor.tertiaryLabelColor
         ]))
-        result.append(NSAttributedString(string: "   ", attributes: [
+        result.append(NSAttributedString(string: spacer, attributes: [
             .font: NSFont.monospacedSystemFont(ofSize: 11, weight: .regular)
         ]))
         result.append(NSAttributedString(string: value, attributes: [

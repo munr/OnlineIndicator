@@ -1,8 +1,8 @@
 import Foundation
 
-/// Measures download speed, upload speed, and ping latency in the background.
-/// Speed tests run on a slow timer (default 5 minutes); ping updates are pushed
-/// in from `AppState` on every connectivity check.
+/// Measures download speed, upload speed, and ping latency on demand.
+/// Speed tests are triggered explicitly (app start delay, WiFi change, user tap) —
+/// there is no background polling timer.
 final class NetworkSpeedMonitor {
 
     struct Snapshot {
@@ -12,44 +12,40 @@ final class NetworkSpeedMonitor {
     }
 
     var snapshotHandler: ((Snapshot) -> Void)?
+    var measuringChangedHandler: ((Bool) -> Void)?
     private(set) var snapshot = Snapshot()
 
     private let queue = DispatchQueue(label: "com.onlineindicator.speedmonitor", qos: .utility)
-    private var timer: DispatchSourceTimer?
     private var downloadTask: URLSessionDataTask?
     private var uploadTask: URLSessionDataTask?
-    private var isMeasuring = false
+    private var isMeasuring = false {
+        didSet {
+            guard isMeasuring != oldValue else { return }
+            let measuring = isMeasuring
+            if Thread.isMainThread {
+                measuringChangedHandler?(measuring)
+            } else {
+                DispatchQueue.main.async { [weak self] in
+                    self?.measuringChangedHandler?(measuring)
+                }
+            }
+        }
+    }
 
-    private static let downloadURL = URL(string: "https://speed.cloudflare.com/__down?bytes=1000000")!
+    // 25 MB download for accuracy on fast connections; 5 MB upload.
+    private static let downloadURL = URL(string: "https://speed.cloudflare.com/__down?bytes=25000000")!
     private static let uploadURL   = URL(string: "https://speed.cloudflare.com/__up")!
-    private let uploadPayload = Data(count: 100_000)
+    private let uploadPayload = Data(count: 5_000_000)
 
     private let session: URLSession = {
         let config = URLSessionConfiguration.ephemeral
-        config.timeoutIntervalForRequest  = 30
-        config.timeoutIntervalForResource = 30
+        config.timeoutIntervalForRequest  = 60
+        config.timeoutIntervalForResource = 60
         config.requestCachePolicy = .reloadIgnoringLocalCacheData
         return URLSession(configuration: config)
     }()
 
     // MARK: - Control
-
-    func start(interval: TimeInterval) {
-        stop()
-        let t = DispatchSource.makeTimerSource(queue: queue)
-        t.schedule(deadline: .now(), repeating: interval)
-        t.setEventHandler { [weak self] in self?.runNow() }
-        t.resume()
-        timer = t
-    }
-
-    func stop() {
-        timer?.cancel()
-        timer = nil
-        downloadTask?.cancel()
-        uploadTask?.cancel()
-        isMeasuring = false
-    }
 
     func runNow() {
         queue.async { [weak self] in
@@ -57,6 +53,12 @@ final class NetworkSpeedMonitor {
             self.isMeasuring = true
             self.measureSpeeds()
         }
+    }
+
+    func cancel() {
+        downloadTask?.cancel()
+        uploadTask?.cancel()
+        queue.async { self.isMeasuring = false }
     }
 
     // MARK: - Ping (pushed from AppState on every connectivity check)

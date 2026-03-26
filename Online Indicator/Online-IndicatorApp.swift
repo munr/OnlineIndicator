@@ -54,6 +54,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             self?.menuBuilder.updateSpeedSnapshot(snapshot)
         }
 
+        AppState.shared.speedMeasuringChangedHandler = { [weak self] measuring in
+            self?.menuBuilder.setSpeedMeasuring(measuring)
+        }
+
+        AppState.shared.speedResetHandler = { [weak self] in
+            self?.menuBuilder.clearSpeedSnapshot()
+        }
+
         AppState.shared.start()
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
