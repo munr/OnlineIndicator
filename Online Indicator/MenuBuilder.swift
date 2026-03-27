@@ -420,6 +420,7 @@ final class MenuHeaderView: NSView {
 
     private func setup() {
         wantsLayer = true
+        autoresizingMask = .width
         nameLabel.stringValue    = AppInfo.appName
         versionLabel.stringValue = AppInfo.fullVersionString
 
