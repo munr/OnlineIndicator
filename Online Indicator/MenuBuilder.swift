@@ -68,7 +68,7 @@ final class MenuBuilder: NSObject {
         let wifiItem = NSMenuItem(title: "", action: #selector(openWiFiSettings), keyEquivalent: "")
         wifiItem.target          = self
         wifiItem.toolTip         = "Click to open Wi-Fi Settings"
-        wifiItem.attributedTitle = ipAttributedString(label: "WiFi  ", value: "Loading…", available: false)
+        wifiItem.attributedTitle = ipAttributedString(label: "WIFI  ", value: "Loading…", available: false)
         wifiMenuItem = wifiItem
         m.addItem(wifiItem)
 
@@ -165,7 +165,7 @@ final class MenuBuilder: NSObject {
         lastDNSServers = addresses.dnsServers
 
         wifiMenuItem?.attributedTitle = ipAttributedString(
-            label: "WiFi  ",
+            label: "WIFI  ",
             value: addresses.wifiName ?? "Unavailable",
             available: addresses.wifiName != nil
         )
