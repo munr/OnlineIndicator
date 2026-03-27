@@ -49,6 +49,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         AppState.shared.statusUpdateHandler = { [weak self] status in
             self?.currentStatus = status
             self?.applyIcon(for: status)
+            self?.menuBuilder.updateVPNState(AppState.shared.isVPNActive)
         }
 
         AppState.shared.speedSnapshotHandler = { [weak self] snapshot in
