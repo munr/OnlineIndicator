@@ -68,14 +68,14 @@ final class MenuBuilder: NSObject {
         let wifiItem = NSMenuItem(title: "", action: #selector(openWiFiSettings), keyEquivalent: "")
         wifiItem.target          = self
         wifiItem.toolTip         = "Click to open Wi-Fi Settings"
-        wifiItem.attributedTitle = ipAttributedString(label: "WiFi", value: "Loading…", available: false)
+        wifiItem.attributedTitle = ipAttributedString(label: "WiFi  ", value: "Loading…", available: false)
         wifiMenuItem = wifiItem
         m.addItem(wifiItem)
 
         let extIPItem = NSMenuItem(title: "", action: #selector(copyExternalIP), keyEquivalent: "")
         extIPItem.target          = self
         extIPItem.toolTip         = "Click to copy"
-        extIPItem.attributedTitle = ipAttributedString(label: "EXT ", value: "Loading…", available: false)
+        extIPItem.attributedTitle = ipAttributedString(label: "EXT   ", value: "Loading…", available: false)
         extIPItem.isHidden        = !shouldShowExternalIP
         externalIPMenuItem = extIPItem
         m.addItem(extIPItem)
@@ -99,21 +99,21 @@ final class MenuBuilder: NSObject {
         let gatewayItem = NSMenuItem(title: "", action: #selector(copyGateway), keyEquivalent: "")
         gatewayItem.target          = self
         gatewayItem.toolTip         = "Click to copy"
-        gatewayItem.attributedTitle = ipAttributedString(label: "GW  ", value: "Loading…", available: false)
+        gatewayItem.attributedTitle = ipAttributedString(label: "GW    ", value: "Loading…", available: false)
         gatewayMenuItem = gatewayItem
         m.addItem(gatewayItem)
 
         let dnsItem = NSMenuItem(title: "", action: #selector(copyDNS), keyEquivalent: "")
         dnsItem.target          = self
         dnsItem.toolTip         = "Click to copy"
-        dnsItem.attributedTitle = ipAttributedString(label: "DNS ", value: "Loading…", available: false)
+        dnsItem.attributedTitle = ipAttributedString(label: "DNS   ", value: "Loading…", available: false)
         dnsItem.tag             = dnsTag
         m.addItem(dnsItem)
 
         m.addItem(.separator())
 
         let pingView = ClickableMenuItemView(frame: NSRect(x: 0, y: 0, width: 260, height: 22))
-        pingView.setAttributedString(ipAttributedString(label: "PING", value: "—", available: false))
+        pingView.setAttributedString(ipAttributedString(label: "PING  ", value: "—", available: false))
         pingView.onRefresh = { [weak self] in self?.refreshPing() }
         pingItemView = pingView
         let pingItem = NSMenuItem()
@@ -165,7 +165,7 @@ final class MenuBuilder: NSObject {
         lastDNSServers = addresses.dnsServers
 
         wifiMenuItem?.attributedTitle = ipAttributedString(
-            label: "WiFi",
+            label: "WiFi  ",
             value: addresses.wifiName ?? "Unavailable",
             available: addresses.wifiName != nil
         )
@@ -180,7 +180,7 @@ final class MenuBuilder: NSObject {
             available: addresses.ipv6 != nil
         )
         gatewayMenuItem?.attributedTitle = ipAttributedString(
-            label: "GW  ",
+            label: "GW    ",
             value: addresses.gateway ?? "Unavailable",
             available: addresses.gateway != nil
         )
@@ -205,12 +205,12 @@ final class MenuBuilder: NSObject {
             let item = NSMenuItem(title: "", action: #selector(copyDNS), keyEquivalent: "")
             item.target          = self
             item.toolTip         = "Click to copy"
-            item.attributedTitle = ipAttributedString(label: "DNS ", value: "Unavailable", available: false)
+            item.attributedTitle = ipAttributedString(label: "DNS   ", value: "Unavailable", available: false)
             item.tag             = dnsTag
             menu.insertItem(item, at: firstIndex)
         } else {
             for (i, server) in servers.enumerated() {
-                let label = i == 0 ? "DNS " : "    "
+                let label = i == 0 ? "DNS   " : "      "
                 let item = NSMenuItem(title: "", action: #selector(copyDNS), keyEquivalent: "")
                 item.target          = self
                 item.toolTip         = "Click to copy"
@@ -224,7 +224,7 @@ final class MenuBuilder: NSObject {
     // MARK: - Speed Reset
 
     func clearSpeedSnapshot() {
-        pingItemView?.setAttributedString(ipAttributedString(label: "PING", value: "—", available: false))
+        pingItemView?.setAttributedString(ipAttributedString(label: "PING  ", value: "—", available: false))
         speedItemView?.setAttributedString(combinedSpeedAttributedString(download: nil, upload: nil, updating: false))
     }
 
@@ -243,7 +243,7 @@ final class MenuBuilder: NSObject {
     func updateSpeedSnapshot(_ snapshot: NetworkSpeedMonitor.Snapshot) {
         // Ping is independent — update it immediately whenever it arrives.
         pingItemView?.setAttributedString(ipAttributedString(
-            label: "PING",
+            label: "PING  ",
             value: snapshot.pingMs.map { String(format: "%.0f ms", $0) } ?? "—",
             available: snapshot.pingMs != nil
         ))
@@ -258,12 +258,12 @@ final class MenuBuilder: NSObject {
 
     private func combinedSpeedAttributedString(download: Double?, upload: Double?, updating: Bool) -> NSAttributedString {
         if updating {
-            return ipAttributedString(label: "SPEED", value: "Updating…", available: false, spacer: "  ")
+            return ipAttributedString(label: "SPEED ", value: "Updating…", available: false)
         }
         guard let dl = download, let ul = upload else {
-            return ipAttributedString(label: "SPEED", value: "—", available: false, spacer: "  ")
+            return ipAttributedString(label: "SPEED ", value: "—", available: false)
         }
-        return ipAttributedString(label: "SPEED", value: "↓ \(formatSpeed(dl))  ↑ \(formatSpeed(ul))", available: true, spacer: "  ")
+        return ipAttributedString(label: "SPEED ", value: "↓ \(formatSpeed(dl))  ↑ \(formatSpeed(ul))", available: true)
     }
 
     private func formatSpeed(_ mbps: Double) -> String {
@@ -427,14 +427,14 @@ final class MenuBuilder: NSObject {
         externalIPMenuItem?.isHidden = !shouldShowExternalIP
         guard shouldShowExternalIP else { return }
         externalIPMenuItem?.attributedTitle = ipAttributedString(
-            label: "EXT ",
+            label: "EXT   ",
             value: ip ?? "Unavailable",
             available: ip != nil
         )
     }
 
     @objc private func refreshPing() {
-        pingItemView?.setAttributedString(ipAttributedString(label: "PING", value: "Updating…", available: false))
+        pingItemView?.setAttributedString(ipAttributedString(label: "PING  ", value: "Updating…", available: false))
         onRefreshPing?()
     }
 
