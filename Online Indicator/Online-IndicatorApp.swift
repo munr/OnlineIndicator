@@ -64,6 +64,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             self?.menuBuilder.clearSpeedSnapshot()
         }
 
+        AppState.shared.vpnStatusChangedHandler = { [weak self] in
+            guard let self else { return }
+            self.menuBuilder.updateAddresses(IPAddressProvider.current())
+            self.externalIPFetcher.fetch { [weak self] ip in
+                self?.menuBuilder.updateExternalIP(ip)
+            }
+            AppState.shared.forceRefreshPing()
+            AppState.shared.forceRefreshSpeed()
+        }
+
         AppState.shared.start()
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {

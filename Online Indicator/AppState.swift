@@ -21,6 +21,7 @@ class AppState {
     private(set) var isVPNActive: Bool = false
 
     var statusUpdateHandler: ((ConnectionStatus) -> Void)?
+    var vpnStatusChangedHandler: (() -> Void)?
     var speedSnapshotHandler: ((NetworkSpeedMonitor.Snapshot) -> Void)?
     var speedMeasuringChangedHandler: ((Bool) -> Void)?
     var speedResetHandler: (() -> Void)?
@@ -122,7 +123,11 @@ class AppState {
             speedResetHandler?()
         }
 
+        let previousVPNActive = isVPNActive
         isVPNActive = IPAddressProvider.isVPNActive()
+        if isVPNActive != previousVPNActive {
+            vpnStatusChangedHandler?()
+        }
 
         if !networkMonitor.isConnected {
             statusUpdateHandler?(.noNetwork)
