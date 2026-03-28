@@ -69,7 +69,9 @@ final class MenuBuilder: NSObject {
         externalIPMenuItem = extIPItem
         m.addItem(extIPItem)
 
-        let ispItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        let ispItem = NSMenuItem(title: "", action: #selector(copyISP), keyEquivalent: "")
+        ispItem.target          = self
+        ispItem.toolTip         = "Click to copy"
         ispItem.attributedTitle = ipAttributedString(label: "ISP   ", value: "Loading…", available: false)
         ispMenuItem = ispItem
         m.addItem(ispItem)
@@ -310,6 +312,12 @@ final class MenuBuilder: NSObject {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(ip, forType: .string)
         onCopyExternalIP?(ip)
+    }
+
+    @objc private func copyISP() {
+        guard let isp = lastISP else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(isp, forType: .string)
     }
 
     func updateExternalIP(_ ip: String?) {
