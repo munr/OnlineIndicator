@@ -12,6 +12,7 @@ final class MenuBuilder: NSObject {
     private var ipv6MenuItem:     NSMenuItem?
     private var gatewayMenuItem:  NSMenuItem?
     private var externalIPMenuItem: NSMenuItem?
+    private var ispMenuItem:         NSMenuItem?
     private var pingMenuItem:        NSMenuItem?
     private var speedMenuItem:       NSMenuItem?
     private var pingItemView:        ClickableMenuItemView?
@@ -67,6 +68,11 @@ final class MenuBuilder: NSObject {
         extIPItem.attributedTitle = ipAttributedString(label: "EXT   ", value: "Loading…", available: false)
         externalIPMenuItem = extIPItem
         m.addItem(extIPItem)
+
+        let ispItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        ispItem.attributedTitle = ipAttributedString(label: "ISP   ", value: "Loading…", available: false)
+        ispMenuItem = ispItem
+        m.addItem(ispItem)
 
         let ipv4Item = NSMenuItem(title: "", action: #selector(copyIPv4), keyEquivalent: "")
         ipv4Item.target          = self
@@ -313,7 +319,11 @@ final class MenuBuilder: NSObject {
 
     func updateISP(_ isp: String?) {
         lastISP = isp
-        refreshExternalIPRow()
+        ispMenuItem?.attributedTitle = ipAttributedString(
+            label: "ISP   ",
+            value: isp ?? "Unavailable",
+            available: isp != nil
+        )
     }
 
     func updateVPNState(_ active: Bool) {
@@ -323,14 +333,10 @@ final class MenuBuilder: NSObject {
 
     private func refreshExternalIPRow() {
         let ip = lastExternalIP
-        var value = ip ?? "Unavailable"
-        if let isp = lastISP, ip != nil {
-            value += "  \(isp)"
-        }
         let str = NSMutableAttributedString(
             attributedString: ipAttributedString(
                 label: "EXT   ",
-                value: value,
+                value: ip ?? "Unavailable",
                 available: ip != nil
             )
         )
