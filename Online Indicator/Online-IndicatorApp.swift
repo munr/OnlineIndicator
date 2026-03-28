@@ -135,8 +135,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func menuWillOpen(_ menu: NSMenu) {
         let addresses = IPAddressProvider.current()
-        handleWifiTransition(newWifiName: addresses.wifiName)
-        menuBuilder.updateAddresses(addresses)
+        updateMenuAddresses(addresses)
         externalIPFetcher.fetch { [weak self] ip in
             self?.menuBuilder.updateExternalIP(ip)
         }
@@ -146,23 +145,24 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menuRefreshTimer?.invalidate()
         let timer = Timer(timeInterval: 5, repeats: true) { [weak self] _ in
             guard let self else { return }
-            let addresses = IPAddressProvider.current()
-            self.handleWifiTransition(newWifiName: addresses.wifiName)
-            self.menuBuilder.updateAddresses(addresses)
+            self.updateMenuAddresses(IPAddressProvider.current())
         }
         RunLoop.main.add(timer, forMode: .common)
         menuRefreshTimer = timer
     }
 
-    /// Detects when WiFi drops and immediately clears stale EXT/ISP values.
-    private func handleWifiTransition(newWifiName: String?) {
-        if lastKnownWifiName != nil && newWifiName == nil {
+    /// Updates address rows, clearing everything when there is no real connectivity
+    /// (no WiFi and no routable IPv4). Detects WiFi drop to immediately clear EXT/ISP.
+    private func updateMenuAddresses(_ addresses: IPAddressProvider.Addresses) {
+        let hasConnectivity = addresses.wifiName != nil || addresses.ipv4 != nil
+        if lastKnownWifiName != nil && addresses.wifiName == nil {
             externalIPFetcher.invalidateCache()
             ispFetcher.invalidateCache()
             menuBuilder.updateExternalIP(nil)
             menuBuilder.updateISP(nil)
         }
-        lastKnownWifiName = newWifiName
+        lastKnownWifiName = addresses.wifiName
+        menuBuilder.updateAddresses(hasConnectivity ? addresses : IPAddressProvider.Addresses())
     }
 
     func menuDidClose(_ menu: NSMenu) {
