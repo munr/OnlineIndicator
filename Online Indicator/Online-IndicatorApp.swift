@@ -68,6 +68,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             guard let self else { return }
             self.menuBuilder.updateVPNState(AppState.shared.isVPNActive)
             self.menuBuilder.updateAddresses(IPAddressProvider.current())
+            self.externalIPFetcher.invalidateCache()
             self.externalIPFetcher.fetch { [weak self] ip in
                 self?.menuBuilder.updateExternalIP(ip)
             }
