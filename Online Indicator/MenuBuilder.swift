@@ -145,9 +145,19 @@ final class MenuBuilder: NSObject {
         lastGateway    = addresses.gateway
         lastDNSServers = addresses.dnsServers
 
+        let wifiValue: String
+        if let ssid = addresses.wifiName {
+            if let rssi = addresses.wifiRSSI {
+                wifiValue = "\(ssid)  \(rssiBarString(rssi))"
+            } else {
+                wifiValue = ssid
+            }
+        } else {
+            wifiValue = "Unavailable"
+        }
         wifiMenuItem?.attributedTitle = ipAttributedString(
             label: "WIFI  ",
-            value: addresses.wifiName ?? "Unavailable",
+            value: wifiValue,
             available: addresses.wifiName != nil
         )
         ipv4MenuItem?.attributedTitle = ipAttributedString(
@@ -366,6 +376,22 @@ final class MenuBuilder: NSObject {
         attachment.image = image
         attachment.bounds = NSRect(x: 0, y: -2, width: pillSize.width, height: pillSize.height)
         return NSAttributedString(attachment: attachment)
+    }
+
+    // MARK: - WiFi Signal Strength
+
+    private func rssiBarString(_ rssi: Int) -> String {
+        let filled: Int
+        switch rssi {
+        case (-50)...:   filled = 4
+        case (-60)...:   filled = 3
+        case (-70)...:   filled = 2
+        case (-80)...:   filled = 1
+        default:         filled = 0
+        }
+        let bar: Character   = "█"
+        let empty: Character = "░"
+        return String(repeating: bar, count: filled) + String(repeating: empty, count: 4 - filled)
     }
 
     // MARK: - IP attributed string
