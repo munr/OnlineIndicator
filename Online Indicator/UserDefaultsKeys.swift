@@ -14,6 +14,8 @@ extension UserDefaults {
         case lastUpdatePage     = "lastUpdatePage"
         // VPN detection
         case showVPNBadge       = "showVPNBadge"
+        // Menu display
+        case showWiFiStrength   = "showWiFiStrength"
     }
 
     func string(for key: Key) -> String? { string(forKey: key.rawValue) }

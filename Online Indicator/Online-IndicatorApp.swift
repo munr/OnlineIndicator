@@ -18,11 +18,14 @@ struct OnlineIndicatorApp: App {
 class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private var statusItem: NSStatusItem!
-    private let menuBuilder        = MenuBuilder()
-    private let windowCoordinator  = WindowCoordinator()
-    private let externalIPFetcher  = ExternalIPFetcher()
+    private let menuBuilder       = MenuBuilder()
+    private let windowCoordinator = WindowCoordinator()
+    private let externalIPFetcher = CachedFetcher.externalIP
+    private let ispFetcher        = CachedFetcher.isp
 
     private var currentStatus: AppState.ConnectionStatus = .noNetwork
+    private var menuRefreshTimer: Timer?
+    private var lastKnownWifiName: String? = nil
 
     // MARK: - Lifecycle
 
@@ -47,9 +50,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         setupStatusItem()
 
         AppState.shared.statusUpdateHandler = { [weak self] status in
-            self?.currentStatus = status
-            self?.applyIcon(for: status)
-            self?.menuBuilder.updateVPNState(AppState.shared.isVPNActive)
+            guard let self else { return }
+            self.currentStatus = status
+            self.applyIcon(for: status)
+            if status == .noNetwork {
+                self.menuBuilder.updateAddresses(IPAddressProvider.Addresses())
+                self.menuBuilder.updateExternalIP(nil)
+                self.menuBuilder.updateISP(nil)
+                self.menuBuilder.updateVPNState(false)
+            } else {
+                self.menuBuilder.updateVPNState(AppState.shared.isVPNActive)
+            }
         }
 
         AppState.shared.speedSnapshotHandler = { [weak self] snapshot in
@@ -68,10 +79,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             guard let self else { return }
             self.menuBuilder.updateVPNState(AppState.shared.isVPNActive)
             self.menuBuilder.updateAddresses(IPAddressProvider.current())
-            self.externalIPFetcher.invalidateCache()
-            self.externalIPFetcher.fetch { [weak self] ip in
-                self?.menuBuilder.updateExternalIP(ip)
-            }
+            self.invalidateExternalCaches()
+            self.fetchExternalData()
             AppState.shared.forceRefreshPing()
             AppState.shared.forceRefreshSpeed()
         }
@@ -119,10 +128,46 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // MARK: - NSMenuDelegate
 
     func menuWillOpen(_ menu: NSMenu) {
-        menuBuilder.updateAddresses(IPAddressProvider.current())
-        externalIPFetcher.fetch { [weak self] ip in
-            self?.menuBuilder.updateExternalIP(ip)
+        let addresses = IPAddressProvider.current()
+        updateMenuAddresses(addresses)
+        fetchExternalData()
+        menuRefreshTimer?.invalidate()
+        let timer = Timer(timeInterval: 5, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            self.updateMenuAddresses(IPAddressProvider.current())
         }
+        RunLoop.main.add(timer, forMode: .common)
+        menuRefreshTimer = timer
+    }
+
+    /// Updates address rows, clearing everything when there is no real connectivity
+    /// (no WiFi and no routable IPv4). Detects WiFi drop to immediately clear EXT/ISP.
+    private func updateMenuAddresses(_ addresses: IPAddressProvider.Addresses) {
+        let hasConnectivity = addresses.wifiName != nil || addresses.ipv4 != nil
+        if lastKnownWifiName != nil && addresses.wifiName == nil {
+            invalidateExternalCaches()
+            menuBuilder.updateExternalIP(nil)
+            menuBuilder.updateISP(nil)
+        }
+        lastKnownWifiName = addresses.wifiName
+        menuBuilder.updateAddresses(hasConnectivity ? addresses : IPAddressProvider.Addresses())
+    }
+
+    func menuDidClose(_ menu: NSMenu) {
+        menuRefreshTimer?.invalidate()
+        menuRefreshTimer = nil
+    }
+
+    // MARK: - External data helpers
+
+    private func invalidateExternalCaches() {
+        externalIPFetcher.invalidateCache()
+        ispFetcher.invalidateCache()
+    }
+
+    private func fetchExternalData() {
+        externalIPFetcher.fetch { [weak self] ip in self?.menuBuilder.updateExternalIP(ip) }
+        ispFetcher.fetch { [weak self] isp in self?.menuBuilder.updateISP(isp) }
     }
 
     // MARK: - Icon

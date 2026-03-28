@@ -9,6 +9,7 @@ struct IPAddressProvider {
         var ipv4: String?
         var ipv6: String?
         var wifiName: String?
+        var wifiRSSI: Int?
         var gateway: String?
         var dnsServers: [String] = []
     }
@@ -18,7 +19,9 @@ struct IPAddressProvider {
     /// interface (e.g. Thunderbolt Ethernet, USB adapters). Strips the scope-ID suffix from IPv6.
     static func current() -> Addresses {
         var result = Addresses()
-        result.wifiName  = CWWiFiClient.shared().interface()?.ssid()
+        let wifiInterface = CWWiFiClient.shared().interface()
+        result.wifiName  = wifiInterface?.ssid()
+        result.wifiRSSI  = wifiInterface?.rssiValue()
         result.gateway   = defaultGateway()
         result.dnsServers = currentDNSServers()
 
