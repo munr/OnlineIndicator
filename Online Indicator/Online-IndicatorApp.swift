@@ -24,6 +24,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let ispFetcher         = ISPFetcher()
 
     private var currentStatus: AppState.ConnectionStatus = .noNetwork
+    private var menuRefreshTimer: Timer?
 
     // MARK: - Lifecycle
 
@@ -131,6 +132,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         ispFetcher.fetch { [weak self] isp in
             self?.menuBuilder.updateISP(isp)
         }
+        menuRefreshTimer?.invalidate()
+        menuRefreshTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            self.menuBuilder.updateAddresses(IPAddressProvider.current())
+        }
+    }
+
+    func menuDidClose(_ menu: NSMenu) {
+        menuRefreshTimer?.invalidate()
+        menuRefreshTimer = nil
     }
 
     // MARK: - Icon
