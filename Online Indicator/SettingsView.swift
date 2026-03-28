@@ -486,7 +486,7 @@ struct SettingsView: View {
         ScrollView {
             VStack(spacing: 24) {
 
-                SettingsSection(title: "Appearance") {
+                SettingsSection(title: "Menu Bar Icon") {
                     VStack(spacing: 0) {
                         IconSlotRow(
                             label: "Connected",
