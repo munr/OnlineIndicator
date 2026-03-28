@@ -35,7 +35,8 @@ struct SettingsView: View {
     @State private var showCopiedToast   = false
     @State private var copiedSymbolName  = ""
 
-    @AppStorage("showVPNBadge") private var showVPNBadge = true
+    @AppStorage("showVPNBadge")     private var showVPNBadge     = true
+    @AppStorage("showWiFiStrength") private var showWiFiStrength = true
 
     @StateObject private var userSetsStore      = UserIconSetsStore()
     @State private var showSaveSetPanel         = false
@@ -657,6 +658,19 @@ struct SettingsView: View {
                             .onChange(of: showVPNBadge) { _, _ in
                                 NotificationCenter.default.post(name: .iconPreferencesChanged, object: nil)
                             }
+                    }
+                }
+
+                SettingsSection(title: "Menu") {
+                    SettingsRow(
+                        icon: "wifi",
+                        iconColor: .blue,
+                        title: "Show Wi-Fi Signal Strength",
+                        subtitle: "Display a signal strength indicator next to the Wi-Fi network name",
+                        onTap: { showWiFiStrength.toggle() }
+                    ) {
+                        Toggle("", isOn: $showWiFiStrength)
+                            .labelsHidden()
                     }
                 }
 

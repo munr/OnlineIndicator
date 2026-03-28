@@ -156,9 +156,10 @@ final class MenuBuilder: NSObject {
         lastGateway    = addresses.gateway
         lastDNSServers = addresses.dnsServers
 
+        let showStrength = UserDefaults.standard.bool(for: .showWiFiStrength, default: true)
         let wifiValue: String
         if let ssid = addresses.wifiName {
-            if let rssi = addresses.wifiRSSI {
+            if showStrength, let rssi = addresses.wifiRSSI {
                 wifiValue = "\(ssid)  \(rssiBarString(rssi))"
             } else {
                 wifiValue = ssid
