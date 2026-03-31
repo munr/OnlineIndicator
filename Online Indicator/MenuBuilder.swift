@@ -497,7 +497,7 @@ final class MenuHeroHeaderView: NSView {
 /// Base class for interactive menu rows that show a selection highlight on hover.
 /// Subclasses inherit the highlight view, tracking area management, and enter/exit
 /// handlers — they only need to add `highlightView` to their layout and handle `mouseDown`.
-private class MenuHoverView: NSView {
+class MenuHoverView: NSView {
 
     let highlightView: NSVisualEffectView = {
         let v = NSVisualEffectView()
