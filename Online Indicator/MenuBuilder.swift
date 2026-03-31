@@ -1,5 +1,9 @@
 import AppKit
 
+// Placeholder strings used throughout the menu for missing / not-yet-loaded values.
+private let noValue      = "—"
+private let unavailable  = "Unavailable"
+
 /// Builds and manages the status bar NSMenu.
 /// The menu uses a card-style layout with a hero header, stats bar, sectioned
 /// network info rows, and a two-button footer. Menu item actions are handled
@@ -74,7 +78,7 @@ final class MenuBuilder: NSObject {
         m.addItem(makeSectionItem(title: "NETWORK"))
 
         let ipv4Row = MenuInfoRowView(frame: NSRect(x: 0, y: 0, width: 300, height: 30))
-        ipv4Row.configure(label: "Internal IPv4", value: "—", available: false)
+        ipv4Row.configure(label: "Internal IPv4", value: noValue, available: false)
         ipv4Row.onCopy = { [weak self] in
             guard let self, let v = self.lastIPv4 else { return }
             self.copyToPasteboard(v, callback: self.onCopyIPv4)
@@ -85,7 +89,7 @@ final class MenuBuilder: NSObject {
         m.addItem(ipv4Item)
 
         let ipv6Row = MenuInfoRowView(frame: NSRect(x: 0, y: 0, width: 300, height: 30))
-        ipv6Row.configure(label: "Internal IPv6", value: "—", available: false)
+        ipv6Row.configure(label: "Internal IPv6", value: noValue, available: false)
         ipv6Row.onCopy = { [weak self] in
             guard let self, let v = self.lastIPv6 else { return }
             self.copyToPasteboard(v, callback: self.onCopyIPv6)
@@ -100,7 +104,7 @@ final class MenuBuilder: NSObject {
         m.addItem(makeSectionItem(title: "ROUTER"))
 
         let gwRow = MenuInfoRowView(frame: NSRect(x: 0, y: 0, width: 300, height: 30))
-        gwRow.configure(label: "Gateway", value: "—", available: false)
+        gwRow.configure(label: "Gateway", value: noValue, available: false)
         gwRow.onCopy = { [weak self] in
             guard let self, let v = self.lastGateway else { return }
             self.copyToPasteboard(v, callback: self.onCopyGateway)
@@ -112,7 +116,7 @@ final class MenuBuilder: NSObject {
 
         // DNS placeholder row — replaced dynamically; tag = dnsTag
         let dnsRow = MenuInfoRowView(frame: NSRect(x: 0, y: 0, width: 300, height: 30))
-        dnsRow.configure(label: "DNS", value: "—", available: false)
+        dnsRow.configure(label: "DNS", value: noValue, available: false)
         dnsRow.onCopy = { [weak self] in
             guard let self, !self.lastDNSServers.isEmpty else { return }
             self.copyToPasteboard(self.lastDNSServers.joined(separator: "\n"), callback: self.onCopyDNS)
@@ -156,17 +160,17 @@ final class MenuBuilder: NSObject {
 
         ipv4RowView?.configure(
             label: "Internal IPv4",
-            value: addresses.ipv4 ?? "Unavailable",
+            value: addresses.ipv4 ?? unavailable,
             available: addresses.ipv4 != nil
         )
         ipv6RowView?.configure(
             label: "Internal IPv6",
-            value: addresses.ipv6 ?? "Unavailable",
+            value: addresses.ipv6 ?? unavailable,
             available: addresses.ipv6 != nil
         )
         gatewayRowView?.configure(
             label: "Gateway",
-            value: addresses.gateway ?? "Unavailable",
+            value: addresses.gateway ?? unavailable,
             available: addresses.gateway != nil
         )
         refreshDNSItems(servers: addresses.dnsServers)
@@ -190,7 +194,7 @@ final class MenuBuilder: NSObject {
 
         if servers.isEmpty {
             let row = MenuInfoRowView(frame: NSRect(x: 0, y: 0, width: 300, height: 30))
-            row.configure(label: "DNS", value: "Unavailable", available: false)
+            row.configure(label: "DNS", value: unavailable, available: false)
             row.onCopy = copyBlock
             let item = NSMenuItem()
             item.view = row
@@ -386,8 +390,8 @@ final class MenuHeroHeaderView: NSView {
         ])
 
         nameLabel.stringValue  = Host.current().localizedName ?? "Mac"
-        ispLabel.stringValue   = "—"
-        extIPLabel.stringValue = "—"
+        ispLabel.stringValue   = noValue
+        extIPLabel.stringValue = noValue
 
         // Add ring as sublayer of self after wantsLayer = true ensures self.layer exists
         if let ring = ringLayer { layer?.addSublayer(ring) }
@@ -429,11 +433,11 @@ final class MenuHeroHeaderView: NSView {
     }
 
     func updateISP(_ isp: String?) {
-        ispLabel.stringValue = isp ?? "—"
+        ispLabel.stringValue = isp ?? noValue
     }
 
     func updateExternalIP(_ ip: String?, isVPN: Bool) {
-        extIPLabel.stringValue = ip ?? "—"
+        extIPLabel.stringValue = ip ?? noValue
         vpnBadgeView.isHidden = !isVPN || ip == nil
     }
 
@@ -476,11 +480,11 @@ final class MenuStatsBarView: NSView {
 
     var onRefresh: (() -> Void)?
 
-    private let downValueLabel = NSTextField(labelWithString: "—")
+    private let downValueLabel = NSTextField(labelWithString: noValue)
     private let downUnitLabel  = NSTextField(labelWithString: "")
-    private let upValueLabel   = NSTextField(labelWithString: "—")
+    private let upValueLabel   = NSTextField(labelWithString: noValue)
     private let upUnitLabel    = NSTextField(labelWithString: "")
-    private let pingValueLabel = NSTextField(labelWithString: "—")
+    private let pingValueLabel = NSTextField(labelWithString: noValue)
     private let pingUnitLabel  = NSTextField(labelWithString: "")
 
     private let highlightView: NSVisualEffectView = {
@@ -640,9 +644,9 @@ final class MenuStatsBarView: NSView {
     // MARK: - Updates
 
     func reset() {
-        downValueLabel.stringValue = "—"; downUnitLabel.stringValue = ""
-        upValueLabel.stringValue   = "—"; upUnitLabel.stringValue   = ""
-        pingValueLabel.stringValue = "—"; pingUnitLabel.stringValue = ""
+        downValueLabel.stringValue = noValue; downUnitLabel.stringValue = ""
+        upValueLabel.stringValue   = noValue; upUnitLabel.stringValue   = ""
+        pingValueLabel.stringValue = noValue; pingUnitLabel.stringValue = ""
     }
 
     func setUpdating() {
@@ -655,7 +659,7 @@ final class MenuStatsBarView: NSView {
             pingValueLabel.stringValue = String(format: "%.0f", ms)
             pingUnitLabel.stringValue  = "ms"
         } else {
-            pingValueLabel.stringValue = "—"
+            pingValueLabel.stringValue = noValue
             pingUnitLabel.stringValue  = ""
         }
     }
@@ -665,13 +669,13 @@ final class MenuStatsBarView: NSView {
             let (v, u) = formatSpeed(dl)
             downValueLabel.stringValue = v; downUnitLabel.stringValue = u
         } else {
-            downValueLabel.stringValue = "—"; downUnitLabel.stringValue = ""
+            downValueLabel.stringValue = noValue; downUnitLabel.stringValue = ""
         }
         if let ul = upload {
             let (v, u) = formatSpeed(ul)
             upValueLabel.stringValue = v; upUnitLabel.stringValue = u
         } else {
-            upValueLabel.stringValue = "—"; upUnitLabel.stringValue = ""
+            upValueLabel.stringValue = noValue; upUnitLabel.stringValue = ""
         }
     }
 
