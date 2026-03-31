@@ -271,9 +271,10 @@ final class MenuHeroHeaderView: NSView {
 
     var onOpenWiFiSettings: (() -> Void)?
 
-    private let nameLabel  = NSTextField(labelWithString: "")
-    private let ispLabel   = NSTextField(labelWithString: "")
-    private let extIPLabel = NSTextField(labelWithString: "")
+    private let nameLabel    = NSTextField(labelWithString: "")
+    private let ispLabel     = NSTextField(labelWithString: "")
+    private let extIPLabel   = NSTextField(labelWithString: "")
+    private let vpnBadgeView = VPNBadgeView()
     private weak var statusDotView: NSView?
     private weak var iconBgView: NSView?
     private var ringLayer: CAShapeLayer?
@@ -351,6 +352,10 @@ final class MenuHeroHeaderView: NSView {
         extIPLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(extIPLabel)
 
+        vpnBadgeView.isHidden = true
+        vpnBadgeView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(vpnBadgeView)
+
         // ── Layout ─────────────────────────────────────────────────────────
         NSLayoutConstraint.activate([
             iconBg.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
@@ -375,6 +380,9 @@ final class MenuHeroHeaderView: NSView {
 
             extIPLabel.leadingAnchor.constraint(equalTo: nameLabel.leadingAnchor),
             extIPLabel.topAnchor.constraint(equalTo: ispLabel.bottomAnchor, constant: 3),
+
+            vpnBadgeView.leadingAnchor.constraint(equalTo: extIPLabel.trailingAnchor, constant: 6),
+            vpnBadgeView.centerYAnchor.constraint(equalTo: extIPLabel.centerYAnchor),
         ])
 
         nameLabel.stringValue  = Host.current().localizedName ?? "Mac"
@@ -425,11 +433,8 @@ final class MenuHeroHeaderView: NSView {
     }
 
     func updateExternalIP(_ ip: String?, isVPN: Bool) {
-        if let ip {
-            extIPLabel.stringValue = isVPN ? "\(ip)  VPN" : ip
-        } else {
-            extIPLabel.stringValue = "—"
-        }
+        extIPLabel.stringValue = ip ?? "—"
+        vpnBadgeView.isHidden = !isVPN || ip == nil
     }
 
     func updateWiFiStrength(_ rssi: Int?) {
@@ -890,6 +895,39 @@ final class MenuFooterView: NSView {
         btn.translatesAutoresizingMaskIntoConstraints = false
         addSubview(btn)
         return btn
+    }
+}
+
+// MARK: - VPNBadgeView
+
+/// A small pill-shaped badge displaying "VPN" in system blue.
+private final class VPNBadgeView: NSView {
+
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        wantsLayer = true
+        layer?.borderWidth       = 0.5
+        layer?.borderColor       = NSColor.systemBlue.withAlphaComponent(0.5).cgColor
+        layer?.backgroundColor   = NSColor.systemBlue.withAlphaComponent(0.18).cgColor
+
+        let label = NSTextField(labelWithString: "VPN")
+        label.font      = .monospacedSystemFont(ofSize: 9, weight: .semibold)
+        label.textColor = .systemBlue
+        label.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(label)
+
+        NSLayoutConstraint.activate([
+            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 5),
+            label.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -5),
+            label.topAnchor.constraint(equalTo: topAnchor, constant: 2),
+            label.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -2),
+        ])
+    }
+    required init?(coder: NSCoder) { fatalError() }
+
+    override func layout() {
+        super.layout()
+        layer?.cornerRadius = bounds.height / 2
     }
 }
 
