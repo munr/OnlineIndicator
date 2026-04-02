@@ -54,7 +54,14 @@ final class MenuInfoRowView: MenuHoverView {
         labelField.stringValue = label
         valueField.stringValue = value
         valueField.textColor   = available ? .labelColor : .tertiaryLabelColor
+        setAccessibilityLabel(label.isEmpty ? nil : "\(label): \(value)")
     }
 
     override func mouseDown(with event: NSEvent) { onCopy?() }
+
+    // MARK: - Accessibility
+
+    override func isAccessibilityElement() -> Bool { true }
+    override func accessibilityRole() -> NSAccessibility.Role? { .button }
+    override func accessibilityHelp() -> String? { "Click to copy" }
 }

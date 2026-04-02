@@ -171,4 +171,18 @@ final class MenuStatsBarView: MenuHoverView {
     }
 
     override func mouseDown(with event: NSEvent) { onRefresh?() }
+
+    // MARK: - Accessibility
+
+    override func isAccessibilityElement() -> Bool { true }
+    override func accessibilityRole() -> NSAccessibility.Role? { .button }
+
+    override func accessibilityLabel() -> String? {
+        let ping     = pingValueLabel.stringValue == menuNoValue ? "ping unavailable" : "ping \(pingValueLabel.stringValue) \(pingUnitLabel.stringValue)"
+        let download = downValueLabel.stringValue == menuNoValue ? "download unavailable" : "download \(downValueLabel.stringValue) \(downUnitLabel.stringValue)"
+        let upload   = upValueLabel.stringValue   == menuNoValue ? "upload unavailable"   : "upload \(upValueLabel.stringValue) \(upUnitLabel.stringValue)"
+        return "\(download), \(upload), \(ping)"
+    }
+
+    override func accessibilityHelp() -> String? { "Click to refresh speed and ping" }
 }

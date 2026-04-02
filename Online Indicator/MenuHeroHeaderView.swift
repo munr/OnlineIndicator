@@ -204,6 +204,13 @@ final class MenuHeroHeaderView: NSView {
     override func hitTest(_ point: NSPoint) -> NSView? {
         bounds.contains(point) ? self : nil
     }
+
+    // MARK: - Accessibility
+
+    override func isAccessibilityElement() -> Bool { true }
+    override func accessibilityRole() -> NSAccessibility.Role? { .button }
+    override func accessibilityLabel() -> String? { nameLabel.stringValue }
+    override func accessibilityHelp() -> String? { "Open WiFi settings" }
 }
 
 // MARK: - VPNBadgeView
