@@ -55,12 +55,11 @@ final class MenuBuilder: NSObject {
 
     // MARK: - Callbacks
 
-    var onCopyIPv4:       ((String) -> Void)?
-    var onCopyIPv6:       ((String) -> Void)?
-    var onCopyGateway:    ((String) -> Void)?
-    var onCopyDNS:        ((String) -> Void)?
-    var onCopyExternalIP: ((String) -> Void)?
-    var onRefreshPing:    (() -> Void)?
+    var onCopyIPv4:    ((String) -> Void)?
+    var onCopyIPv6:    ((String) -> Void)?
+    var onCopyGateway: ((String) -> Void)?
+    var onCopyDNS:     ((String) -> Void)?
+    var onRefreshPing: (() -> Void)?
     var onRefreshSpeed:   (() -> Void)?
     var onOpenSettings:   (() -> Void)?
     var onQuit:           (() -> Void)?

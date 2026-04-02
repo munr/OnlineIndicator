@@ -113,12 +113,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func setupStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
-        menuBuilder.onCopyIPv4     = { [weak self] _ in self?.showCopiedTooltip(text: "IPv4 Copied") }
-        menuBuilder.onCopyIPv6     = { [weak self] _ in self?.showCopiedTooltip(text: "IPv6 Copied") }
-        menuBuilder.onCopyGateway  = { [weak self] _ in self?.showCopiedTooltip(text: "Gateway Copied") }
-        menuBuilder.onCopyDNS        = { [weak self] _ in self?.showCopiedTooltip(text: "DNS Copied") }
-        menuBuilder.onCopyExternalIP = { [weak self] _ in self?.showCopiedTooltip(text: "External IP Copied") }
-        menuBuilder.onRefreshPing  = { AppState.shared.forceRefreshPing() }
+        menuBuilder.onCopyIPv4    = { [weak self] _ in self?.showCopiedTooltip(text: "IPv4 Copied") }
+        menuBuilder.onCopyIPv6    = { [weak self] _ in self?.showCopiedTooltip(text: "IPv6 Copied") }
+        menuBuilder.onCopyGateway = { [weak self] _ in self?.showCopiedTooltip(text: "Gateway Copied") }
+        menuBuilder.onCopyDNS     = { [weak self] _ in self?.showCopiedTooltip(text: "DNS Copied") }
+        menuBuilder.onRefreshPing = { AppState.shared.forceRefreshPing() }
         menuBuilder.onRefreshSpeed = { AppState.shared.forceRefreshSpeed() }
         menuBuilder.onOpenSettings = { [weak self] in self?.windowCoordinator.openSettings() }
         menuBuilder.onQuit         = { NSApplication.shared.terminate(nil) }
