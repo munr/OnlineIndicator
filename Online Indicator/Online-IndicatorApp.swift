@@ -48,10 +48,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func startApp() {
         setupStatusItem()
 
-        AppState.shared.statusUpdateHandler = { [weak self] status in
+        AppState.shared.statusUpdateHandler = { [weak self] status, addresses in
             guard let self else { return }
             self.currentStatus = status
-            self.applyIcon(for: status)
+            self.applyIcon(for: status, wifiName: addresses.wifiName, isVPNActive: addresses.isVPNActive)
             self.menuBuilder.updateConnectionStatus(status)
             if status == .noNetwork {
                 self.menuBuilder.updateAddresses(IPAddressProvider.Addresses())
@@ -59,7 +59,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 self.menuBuilder.updateISP(nil)
                 self.menuBuilder.updateVPNState(false)
             } else {
-                self.menuBuilder.updateVPNState(AppState.shared.isVPNActive)
+                self.menuBuilder.updateVPNState(addresses.isVPNActive)
             }
         }
 
@@ -75,19 +75,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             self?.menuBuilder.clearSpeedSnapshot()
         }
 
-        AppState.shared.vpnStatusChangedHandler = { [weak self] in
+        AppState.shared.vpnStatusChangedHandler = { [weak self] addresses in
             guard let self else { return }
-            self.menuBuilder.updateVPNState(AppState.shared.isVPNActive)
-            self.menuBuilder.updateAddresses(IPAddressProvider.current())
+            self.menuBuilder.updateVPNState(addresses.isVPNActive)
+            self.updateMenuAddresses(addresses)
             self.invalidateExternalCaches()
             self.fetchExternalData()
             AppState.shared.forceRefreshPing()
             AppState.shared.forceRefreshSpeed()
         }
 
-        AppState.shared.networkAddressesChangedHandler = { [weak self] in
-            guard let self else { return }
-            self.updateMenuAddresses(IPAddressProvider.current())
+        AppState.shared.networkAddressesChangedHandler = { [weak self] addresses in
+            self?.updateMenuAddresses(addresses)
         }
 
         AppState.shared.start()
@@ -106,7 +105,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             queue: .main
         ) { [weak self] _ in
             guard let self else { return }
-            self.applyIcon(for: self.currentStatus)
+            let addresses = IPAddressProvider.current()
+            self.applyIcon(for: self.currentStatus, wifiName: addresses.wifiName, isVPNActive: addresses.isVPNActive)
         }
     }
 
@@ -126,13 +126,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.delegate = self
         statusItem.menu = menu
 
-        applyIcon(for: .noNetwork)
+        applyIcon(for: .noNetwork, wifiName: nil, isVPNActive: false)
     }
 
     // MARK: - NSMenuDelegate
 
     func menuWillOpen(_ menu: NSMenu) {
-        updateMenuAddresses(IPAddressProvider.current())
+        // Menu open always gets a fresh snapshot — this is a user-initiated action.
+        let addresses = IPAddressProvider.current()
+        updateMenuAddresses(addresses)
         fetchExternalData()
     }
 
@@ -163,14 +165,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     // MARK: - Icon
 
-    private func applyIcon(for status: AppState.ConnectionStatus) {
+    private func applyIcon(for status: AppState.ConnectionStatus,
+                            wifiName: String?,
+                            isVPNActive: Bool) {
         guard let button = statusItem.button else { return }
 
-        let wifiName = IPAddressProvider.current().wifiName
         guard let output = StatusIconRenderer.render(
             for: status,
             wifiName: wifiName,
-            isVPNActive: AppState.shared.isVPNActive
+            isVPNActive: isVPNActive
         ) else { return }
 
         button.toolTip = output.toolTip

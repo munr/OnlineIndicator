@@ -20,9 +20,13 @@ final class AppState {
 
     private(set) var isVPNActive: Bool = false
 
-    var statusUpdateHandler: ((ConnectionStatus) -> Void)?
-    var vpnStatusChangedHandler: (() -> Void)?
-    var networkAddressesChangedHandler: (() -> Void)?
+    /// Called when the connection status changes. Receives the new status and the
+    /// current network addresses snapshot so callers don't need to re-query.
+    var statusUpdateHandler: ((ConnectionStatus, IPAddressProvider.Addresses) -> Void)?
+    /// Called when the VPN state changes. Receives the current addresses snapshot.
+    var vpnStatusChangedHandler: ((IPAddressProvider.Addresses) -> Void)?
+    /// Called on every connectivity check cycle. Receives the current addresses snapshot.
+    var networkAddressesChangedHandler: ((IPAddressProvider.Addresses) -> Void)?
     var speedSnapshotHandler: ((NetworkSpeedMonitor.Snapshot) -> Void)?
     var speedMeasuringChangedHandler: ((Bool) -> Void)?
     var speedResetHandler: (() -> Void)?
@@ -116,6 +120,7 @@ final class AppState {
 
     private func checkConnection() {
 
+        // Call current() once; pass the snapshot to all handlers so they don't re-query.
         let addresses = IPAddressProvider.current()
 
         let ssidChanged = addresses.wifiName != lastWifiSSID
@@ -128,13 +133,13 @@ final class AppState {
         let previousVPNActive = isVPNActive
         isVPNActive = addresses.isVPNActive
         if isVPNActive != previousVPNActive {
-            vpnStatusChangedHandler?()
+            vpnStatusChangedHandler?(addresses)
         }
 
-        networkAddressesChangedHandler?()
+        networkAddressesChangedHandler?(addresses)
 
         if !networkMonitor.isConnected {
-            statusUpdateHandler?(.noNetwork)
+            statusUpdateHandler?(.noNetwork, addresses)
             return
         }
 
@@ -142,7 +147,7 @@ final class AppState {
         connectivityChecker.checkOutboundConnection { [weak self] reachable, latencyMs in
 
             DispatchQueue.main.async {
-                self?.statusUpdateHandler?(reachable ? .connected : .blocked)
+                self?.statusUpdateHandler?(reachable ? .connected : .blocked, addresses)
                 if let ms = latencyMs {
                     self?.speedMonitor.updatePing(ms)
                 }
