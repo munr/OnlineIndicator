@@ -1,6 +1,6 @@
 import Foundation
 
-class ConnectivityChecker {
+final class ConnectivityChecker {
 
     static let defaultURLString = "http://captive.apple.com"
 

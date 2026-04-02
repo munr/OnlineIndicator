@@ -1,6 +1,6 @@
 import Foundation
 
-class AppState {
+final class AppState {
 
     static let shared = AppState()
 

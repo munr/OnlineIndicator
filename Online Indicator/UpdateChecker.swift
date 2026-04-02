@@ -1,7 +1,7 @@
 import Foundation
 import AppKit
 
-class UpdateChecker {
+final class UpdateChecker {
 
     static let repoOwner = "munr"
     static let repoName  = "mac-online-indicator"
