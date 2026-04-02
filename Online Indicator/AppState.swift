@@ -116,16 +116,17 @@ final class AppState {
 
     private func checkConnection() {
 
-        let currentSSID = IPAddressProvider.current().wifiName
-        let ssidChanged = currentSSID != lastWifiSSID
-        lastWifiSSID = currentSSID
+        let addresses = IPAddressProvider.current()
+
+        let ssidChanged = addresses.wifiName != lastWifiSSID
+        lastWifiSSID = addresses.wifiName
 
         if ssidChanged {
             speedResetHandler?()
         }
 
         let previousVPNActive = isVPNActive
-        isVPNActive = IPAddressProvider.isVPNActive()
+        isVPNActive = addresses.isVPNActive
         if isVPNActive != previousVPNActive {
             vpnStatusChangedHandler?()
         }

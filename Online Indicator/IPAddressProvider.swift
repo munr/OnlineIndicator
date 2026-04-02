@@ -12,6 +12,7 @@ struct IPAddressProvider {
         var wifiRSSI: Int?
         var gateway: String?
         var dnsServers: [String] = []
+        var isVPNActive: Bool = false
     }
 
     /// Reads the current IPv4, IPv6, Wi-Fi name, default gateway, and DNS servers.
@@ -30,18 +31,27 @@ struct IPAddressProvider {
         defer { freeifaddrs(ifaddr) }
 
         // Collect all active, non-loopback interface names in encounter order.
+        // Also detect VPN tunnels in this same pass.
         var seenNames: [String] = []
         var ptr = ifaddr
-        while let current = ptr {
-            defer { ptr = current.pointee.ifa_next }
-            let name = String(cString: current.pointee.ifa_name)
-            guard !name.hasPrefix("lo"), !seenNames.contains(name) else { continue }
-            seenNames.append(name)
+        while let ifa = ptr {
+            defer { ptr = ifa.pointee.ifa_next }
+            let name = String(cString: ifa.pointee.ifa_name)
+            if !seenNames.contains(name) { seenNames.append(name) }
+
+            // VPN detection: utun*/ipsec* interface with an IPv4 address that is UP + RUNNING.
+            if (name.hasPrefix("utun") || name.hasPrefix("ipsec")),
+               let addr = ifa.pointee.ifa_addr,
+               addr.pointee.sa_family == AF_INET,
+               (ifa.pointee.ifa_flags & UInt32(IFF_UP)) != 0,
+               (ifa.pointee.ifa_flags & UInt32(IFF_RUNNING)) != 0 {
+                result.isVPNActive = true
+            }
         }
 
         // Sort: en* first (lower index = higher priority), then everything else alphabetically.
         // Exclude purely virtual/tunnel interfaces that won't carry user traffic.
-        let excluded: Set<String> = ["utun", "ipsec", "llw", "anpi", "bridge", "p2p"]
+        let excluded: Set<String> = ["lo", "utun", "ipsec", "llw", "anpi", "bridge", "p2p"]
         let active = seenNames
             .filter { name in !excluded.contains(where: { name.hasPrefix($0) }) }
             .sorted { a, b in
@@ -84,28 +94,6 @@ struct IPAddressProvider {
         }
 
         return result
-    }
-
-    // MARK: - VPN Detection
-
-    /// Returns `true` if any VPN tunnel interface (`utun*` or `ipsec*`) is up and has an assigned address.
-    static func isVPNActive() -> Bool {
-        var ifaddr: UnsafeMutablePointer<ifaddrs>?
-        guard getifaddrs(&ifaddr) == 0 else { return false }
-        defer { freeifaddrs(ifaddr) }
-        var ptr = ifaddr
-        while let ifa = ptr?.pointee {
-            defer { ptr = ifa.ifa_next }
-            let name = String(cString: ifa.ifa_name)
-            guard name.hasPrefix("utun") || name.hasPrefix("ipsec"),
-                  let addr = ifa.ifa_addr,
-                  addr.pointee.sa_family == AF_INET,
-                  (ifa.ifa_flags & UInt32(IFF_UP)) != 0,
-                  (ifa.ifa_flags & UInt32(IFF_RUNNING)) != 0
-            else { continue }
-            return true
-        }
-        return false
     }
 
     // MARK: - Gateway
