@@ -932,21 +932,13 @@ private final class MenuFooterButtonView: MenuHoverView {
         ])
 
         let font = NSFont.systemFont(ofSize: 13)
-
-        // Render the SF Symbol at the target size and tint it via sourceAtop compositing.
-        let symConfig = NSImage.SymbolConfiguration(pointSize: 13, weight: .regular)
         let iconSize: CGFloat = 13
-        let tintedIcon: NSImage? = NSImage(systemSymbolName: symbolName,
-                                           accessibilityDescription: nil)?
+
+        // Use paletteColors to tint the SF Symbol — consistent with StatusIconRenderer.
+        let symConfig = NSImage.SymbolConfiguration(pointSize: iconSize, weight: .regular)
+            .applying(NSImage.SymbolConfiguration(paletteColors: [tintColor]))
+        let tintedIcon = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil)?
             .withSymbolConfiguration(symConfig)
-            .map { src in
-                NSImage(size: src.size, flipped: false) { rect in
-                    src.draw(in: rect)
-                    tintColor.setFill()
-                    rect.fill(using: .sourceAtop)
-                    return true
-                }
-            }
 
         // Embed the icon as a text attachment so it sits on the same baseline as the title.
         // The bounds offset centers it on the font's cap height.
