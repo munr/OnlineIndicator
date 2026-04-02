@@ -1,7 +1,7 @@
 import Foundation
 import AppKit
 
-class UpdateChecker {
+final class UpdateChecker {
 
     static let repoOwner = "munr"
     static let repoName  = "mac-online-indicator"
@@ -15,6 +15,22 @@ class UpdateChecker {
         case updateAvailable(releaseTag: String, notes: String?, downloadURL: URL?, pageURL: URL)
         case error(String)
     }
+
+    // MARK: - GitHub API response model
+
+    private struct GitHubRelease: Decodable {
+        let tagName: String
+        let htmlUrl: URL
+        let body: String?
+        let assets: [Asset]
+
+        struct Asset: Decodable {
+            let name: String
+            let browserDownloadUrl: URL
+        }
+    }
+
+    // MARK: - Version comparison
 
     private static func versionComponents(from version: String) -> [Int] {
         // Extract every numeric run so we handle tags like:
@@ -95,7 +111,6 @@ class UpdateChecker {
 
         check { result in
             UserDefaults.standard.set(Date(), for: .lastUpdateCheck)
-            persistResult(result)
             completion(result)
         }
     }
@@ -112,62 +127,52 @@ class UpdateChecker {
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         request.timeoutInterval = 10
 
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+
         URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
-                if let error = error {
+                if let error {
                     completion(.error(error.localizedDescription))
                     return
                 }
 
-                guard let data = data,
-                      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-                else {
+                guard let data else {
                     completion(.error("Invalid response from GitHub"))
                     return
                 }
 
-                // GitHub returns an error object when repo/release not found
-                if let message = json["message"] as? String {
+                // GitHub returns a JSON object with a "message" key for errors (e.g. rate limit, not found).
+                if let errorPayload = try? JSONDecoder().decode([String: String].self, from: data),
+                   let message = errorPayload["message"] {
                     completion(.error(message))
                     return
                 }
 
-                guard let tag = json["tag_name"] as? String,
-                      let pageURLString = json["html_url"] as? String,
-                      let pageURL = URL(string: pageURLString)
-                else {
+                guard let release = try? decoder.decode(GitHubRelease.self, from: data) else {
                     completion(.error("Unexpected response format"))
                     return
                 }
 
-                // Strip a leading "v" from the tag (e.g. "v1.2.0" → "1.2.0") before comparing
-                let remoteVersion = tag.hasPrefix("v") ? String(tag.dropFirst()) : tag
-                let localVersion  = AppInfo.marketingVersion
+                // Strip a leading "v" from the tag (e.g. "v1.2.0" → "1.2.0") before comparing.
+                let remoteVersion = release.tagName.hasPrefix("v")
+                    ? String(release.tagName.dropFirst())
+                    : release.tagName
 
-                guard isNewer(remoteVersion, than: localVersion) else {
+                guard isNewer(remoteVersion, than: AppInfo.marketingVersion) else {
                     persistResult(.upToDate)
                     completion(.upToDate)
                     return
                 }
 
-                let notes = json["body"] as? String
-
-                // Prefer the first .dmg asset; fall back to the release page
-                var downloadURL: URL? = nil
-                if let assets = json["assets"] as? [[String: Any]] {
-                    let dmg = assets.first {
-                        ($0["name"] as? String)?.hasSuffix(".dmg") == true
-                    }
-                    if let dmgURLString = dmg?["browser_download_url"] as? String {
-                        downloadURL = URL(string: dmgURLString)
-                    }
-                }
+                // Prefer the first .dmg asset; fall back to the release page.
+                let downloadURL = release.assets.first { $0.name.hasSuffix(".dmg") }?.browserDownloadUrl
 
                 let result = UpdateResult.updateAvailable(
-                    releaseTag:  tag,
-                    notes:       notes,
+                    releaseTag:  release.tagName,
+                    notes:       release.body,
                     downloadURL: downloadURL,
-                    pageURL:     pageURL
+                    pageURL:     release.htmlUrl
                 )
                 persistResult(result)
                 completion(result)

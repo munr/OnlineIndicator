@@ -3,18 +3,17 @@ import AppKit
 
 struct SettingsView: View {
 
-    @State private var selectedTab      = 0
     @State private var interval: Double = {
         let v = UserDefaults.standard.double(for: .refreshInterval)
         return v == 0 ? 60 : v
     }()
-    @State private var intervalText     = ""
-    @State private var intervalSaved    = false
-    @State private var intervalInvalid  = false
-    @State private var pingURL          = ""
-    @State private var pingURLSaved     = false
-    @State private var pingURLInvalid   = false
-    @State private var isLaunchEnabled  = false
+    @State private var intervalText    = ""
+    @State private var intervalSaved   = false
+    @State private var intervalInvalid = false
+    @State private var pingURL         = ""
+    @State private var pingURLSaved    = false
+    @State private var pingURLInvalid  = false
+    @State private var isLaunchEnabled = false
     @State private var loginItemError: String?
 
     enum UpdateStatus: Equatable {
@@ -28,189 +27,35 @@ struct SettingsView: View {
     @State private var showChangelog = false
     @State private var lastCheckDate: Date? = UserDefaults.standard.object(for: .lastUpdateCheck) as? Date
 
-    @State private var connectedSlot     = IconPreferences.slot(for: .connected)
-    @State private var blockedSlot       = IconPreferences.slot(for: .blocked)
-    @State private var noNetworkSlot     = IconPreferences.slot(for: .noNetwork)
-    @State private var showSymbolBrowser = false
-    @State private var showCopiedToast   = false
-    @State private var copiedSymbolName  = ""
+    @State private var showIconSetPicker = false
+    @State private var selectedIconSetID: UUID?
 
-    @AppStorage("showVPNBadge")     private var showVPNBadge     = true
-    @AppStorage("showWiFiStrength") private var showWiFiStrength = true
+    // MARK: - Icon set helpers
 
-    @StateObject private var userSetsStore      = UserIconSetsStore()
-    @State private var showSaveSetPanel         = false
-    @State private var saveSetName              = ""
-    @State private var suppressSaveButton       = false
-    @State private var showSetSavedConfirmation = false
-
-    // MARK: - Modified-from-defaults check
-
-    private func colorDiffers(_ a: NSColor, _ b: NSColor) -> Bool {
-        guard let ac = a.usingColorSpace(.sRGB),
-              let bc = b.usingColorSpace(.sRGB) else { return !a.isEqual(b) }
-        return abs(ac.redComponent   - bc.redComponent)   > 0.001 ||
-               abs(ac.greenComponent - bc.greenComponent) > 0.001 ||
-               abs(ac.blueComponent  - bc.blueComponent)  > 0.001
+    private var currentIconSetName: String {
+        iconSets.first { $0.id == selectedIconSetID }?.name ?? "Custom"
     }
 
-    private var isModifiedFromDefault: Bool {
-        let dc = IconPreferences.defaultSlot(for: .connected)
-        let db = IconPreferences.defaultSlot(for: .blocked)
-        let dn = IconPreferences.defaultSlot(for: .noNetwork)
-        return connectedSlot.symbolName  != dc.symbolName || colorDiffers(connectedSlot.color,  dc.color) ||
-               connectedSlot.menuLabel   != dc.menuLabel  || connectedSlot.menuLabelEnabled != dc.menuLabelEnabled ||
-               blockedSlot.symbolName    != db.symbolName || colorDiffers(blockedSlot.color,    db.color) ||
-               blockedSlot.menuLabel     != db.menuLabel  || blockedSlot.menuLabelEnabled   != db.menuLabelEnabled ||
-               noNetworkSlot.symbolName  != dn.symbolName || colorDiffers(noNetworkSlot.color,  dn.color) ||
-               noNetworkSlot.menuLabel   != dn.menuLabel  || noNetworkSlot.menuLabelEnabled != dn.menuLabelEnabled
-    }
-    
-    private var currentSlotsMatchAnySavedSet: Bool {
-        let (c, b, n) = (connectedSlot, blockedSlot, noNetworkSlot)
-        return userSetsStore.sets.contains { set in
-            let (sc, sb, sn) = set.toSlots()
-            return sc.symbolName == c.symbolName && !colorDiffers(sc.color, c.color) &&
-                   sc.menuLabel  == c.menuLabel  && sc.menuLabelEnabled == c.menuLabelEnabled &&
-                   sb.symbolName == b.symbolName && !colorDiffers(sb.color, b.color) &&
-                   sb.menuLabel  == b.menuLabel  && sb.menuLabelEnabled == b.menuLabelEnabled &&
-                   sn.symbolName == n.symbolName && !colorDiffers(sn.color, n.color) &&
-                   sn.menuLabel  == n.menuLabel  && sn.menuLabelEnabled == n.menuLabelEnabled
-        }
+    private func resolveSelectedSet() {
+        let c = IconPreferences.slot(for: .connected).symbolName
+        let b = IconPreferences.slot(for: .blocked).symbolName
+        let n = IconPreferences.slot(for: .noNetwork).symbolName
+        selectedIconSetID = iconSets.first {
+            $0.connectedSymbol == c && $0.blockedSymbol == b && $0.noNetworkSymbol == n
+        }?.id
     }
 
-    private var shouldShowSaveButton: Bool {
-        isModifiedFromDefault &&
-        !suppressSaveButton &&
-        !showSetSavedConfirmation &&
-        !currentSlotsMatchAnySavedSet
+    private func applyIconSet(_ set: IconSet) {
+        let (c, b, n) = set.toSlots()
+        IconPreferences.save(c, for: .connected)
+        IconPreferences.save(b, for: .blocked)
+        IconPreferences.save(n, for: .noNetwork)
+        selectedIconSetID = set.id
     }
-    
-    private func onSlotChanged() {
-        if suppressSaveButton && !currentSlotsMatchAnySavedSet {
-            withAnimation(.easeInOut(duration: 0.2)) {
-                suppressSaveButton       = false
-                showSetSavedConfirmation = false
-            }
-        }
-    }
+
+    // MARK: - Body
 
     var body: some View {
-        VStack(spacing: 0) {
-
-            Picker("", selection: $selectedTab) {
-                Label("General",    systemImage: "gearshape.fill").tag(0)
-                Label("Appearance", systemImage: "paintbrush.fill").tag(1)
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .controlSize(.large)
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
-            .padding(.bottom, 14)
-
-            Group {
-                if selectedTab == 0 {
-                    generalTab
-                } else {
-                    appearanceTab
-                }
-            }
-            .animation(.easeInOut(duration: 0.18), value: selectedTab)
-        }
-        .frame(width: 440)
-        .background(Color(.windowBackgroundColor))
-
-        .sheet(isPresented: $showSymbolBrowser) {
-            SymbolBrowserView(
-                store: userSetsStore,
-                onSelect: { connected, blocked, noNetwork in
-                    connectedSlot  = connected
-                    blockedSlot    = blocked
-                    noNetworkSlot  = noNetwork
-                    IconPreferences.save(connected,  for: .connected)
-                    IconPreferences.save(blocked,    for: .blocked)
-                    IconPreferences.save(noNetwork,  for: .noNetwork)
-                    suppressSaveButton       = true
-                    showSetSavedConfirmation = false
-                    showSaveSetPanel         = false
-                    saveSetName              = ""
-                }
-            )
-        }
-
-        .overlay(alignment: .bottom) {
-            if showCopiedToast {
-                HStack(spacing: 8) {
-                    Image(systemName: copiedSymbolName)
-                        .symbolRenderingMode(.monochrome)
-                        .font(.system(size: 14))
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text("\"\(copiedSymbolName)\" copied")
-                            .font(.system(size: 12, weight: .semibold))
-                        Text("Paste it into an Appearance symbol field above")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(Color(.controlBackgroundColor))
-                        .shadow(color: .black.opacity(0.18), radius: 14, y: 4)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
-                )
-                .padding(.bottom, 14)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .symbolCopied)) { note in
-            copiedSymbolName = note.object as? String ?? ""
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
-                showCopiedToast = true
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                withAnimation(.easeOut(duration: 0.25)) { showCopiedToast = false }
-            }
-        }
-        .onAppear {
-            isLaunchEnabled = LoginItemManager.shared.isEnabled()
-            intervalText    = formatInterval(interval)
-            pingURL         = UserDefaults.standard.string(for: .pingURL) ?? ""
-            connectedSlot   = IconPreferences.slot(for: .connected)
-            blockedSlot     = IconPreferences.slot(for: .blocked)
-            noNetworkSlot   = IconPreferences.slot(for: .noNetwork)
-
-            if updateStatus == .idle, let cached = UpdateChecker.cachedResult {
-                applyUpdateResult(cached, autoDismiss: false)
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .settingsWindowDidBecomeKey)) { _ in
-            isLaunchEnabled = LoginItemManager.shared.isEnabled()
-            connectedSlot   = IconPreferences.slot(for: .connected)
-            blockedSlot     = IconPreferences.slot(for: .blocked)
-            noNetworkSlot   = IconPreferences.slot(for: .noNetwork)
-        }
-        .alert("Launch at Login Failed", isPresented: Binding(
-            get: { loginItemError != nil },
-            set: { if !$0 { loginItemError = nil } }
-        )) {
-            Button("OK", role: .cancel) { loginItemError = nil }
-        } message: {
-            if let msg = loginItemError {
-                Text(msg)
-            }
-        }
-    }
-
-    // MARK: - Tab 1: General
-
-    private var generalTab: some View {
         ScrollView {
             VStack(spacing: 24) {
 
@@ -240,7 +85,6 @@ struct SettingsView: View {
                         title: "Check for Updates",
                         subtitle: updateRowSubtitle
                     ) {
-                        
                         HStack(spacing: 8) {
                             switch updateStatus {
                             case .idle:
@@ -318,6 +162,24 @@ struct SettingsView: View {
                     }
                 }
 
+                SettingsSection(title: "Menu Bar Icon") {
+                    SettingsRow(
+                        icon: "square.grid.2x2.fill",
+                        iconColor: .purple,
+                        title: "Icon Set",
+                        subtitle: currentIconSetName
+                    ) {
+                        Button("Choose") { showIconSetPicker = true }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                    }
+                    .sheet(isPresented: $showIconSetPicker) {
+                        IconSetPickerView(selectedID: selectedIconSetID) { set in
+                            applyIconSet(set)
+                        }
+                    }
+                }
+
                 SettingsSection(title: "Monitoring") {
                     SettingsRow(
                         icon: "clock.fill",
@@ -331,12 +193,8 @@ struct SettingsView: View {
                                 .frame(width: 56)
                                 .multilineTextAlignment(.trailing)
                                 .onChange(of: intervalText) { _, newValue in
-                                    // Strip anything that isn't a digit
                                     let digitsOnly = newValue.filter { $0.isNumber }
-                                    if digitsOnly != newValue {
-                                        intervalText = digitsOnly
-                                    }
-                                    // Clear the error as soon as the user edits
+                                    if digitsOnly != newValue { intervalText = digitsOnly }
                                     if intervalInvalid { intervalInvalid = false }
                                 }
 
@@ -359,7 +217,6 @@ struct SettingsView: View {
                         .animation(.easeInOut(duration: 0.18), value: intervalSaved)
                     }
 
-                    // Inline error shown when value is below 1 second
                     if intervalInvalid {
                         HStack(spacing: 0) {
                             Spacer().frame(width: 56)
@@ -383,8 +240,8 @@ struct SettingsView: View {
                             ForEach([("30s", 30.0), ("1m", 60.0), ("2m", 120.0), ("5m", 300.0)], id: \.1) { lbl, val in
                                 Button {
                                     withAnimation(.easeInOut(duration: 0.15)) {
-                                        interval     = val
-                                        intervalText = formatInterval(val)
+                                        interval        = val
+                                        intervalText    = formatInterval(val)
                                         intervalInvalid = false
                                     }
                                 } label: {
@@ -425,9 +282,7 @@ struct SettingsView: View {
                                 TextField(ConnectivityChecker.defaultURLString, text: $pingURL)
                                     .textFieldStyle(.roundedBorder)
                                     .font(.system(size: 12, design: .monospaced))
-                                    .onChange(of: pingURL) { _, _ in
-                                        pingURLInvalid = false
-                                    }
+                                    .onChange(of: pingURL) { _, _ in pingURLInvalid = false }
 
                                 if pingURLSaved {
                                     Image(systemName: "checkmark.circle.fill")
@@ -476,210 +331,31 @@ struct SettingsView: View {
             }
             .padding(20)
         }
+        .frame(width: 440)
         .scrollContentBackground(.hidden)
         .background(Color(.windowBackgroundColor))
-    }
+        .onAppear {
+            isLaunchEnabled = LoginItemManager.shared.isEnabled()
+            intervalText    = formatInterval(interval)
+            pingURL         = UserDefaults.standard.string(for: .pingURL) ?? ""
+            resolveSelectedSet()
 
-    // MARK: - Tab 2: Appearance
-
-    private var appearanceTab: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-
-                SettingsSection(title: "Menu Bar Icon") {
-                    VStack(spacing: 0) {
-                        IconSlotRow(
-                            label: "Connected",
-                            statusDescription: "Internet access is available and this Mac is online",
-                            defaultSlot: IconPreferences.defaultSlot(for: .connected),
-                            slot: $connectedSlot,
-                            onChange: {
-                                onSlotChanged()
-                                IconPreferences.save(connectedSlot, for: .connected)
-                            },
-                            onReset: {
-                                connectedSlot = IconPreferences.defaultSlot(for: .connected)
-                                onSlotChanged()
-                                IconPreferences.save(connectedSlot, for: .connected)
-                            }
-                        )
-
-                        Divider().padding(.leading, 14)
-
-                        IconSlotRow(
-                            label: "Blocked",
-                            statusDescription: "Connected, but no internet (e.g. hotel or airport network)",
-                            defaultSlot: IconPreferences.defaultSlot(for: .blocked),
-                            slot: $blockedSlot,
-                            onChange: {
-                                onSlotChanged()
-                                IconPreferences.save(blockedSlot, for: .blocked)
-                            },
-                            onReset: {
-                                blockedSlot = IconPreferences.defaultSlot(for: .blocked)
-                                onSlotChanged()
-                                IconPreferences.save(blockedSlot, for: .blocked)
-                            }
-                        )
-
-                        Divider().padding(.leading, 14)
-
-                        IconSlotRow(
-                            label: "No Network",
-                            statusDescription: "No Wi-Fi or cable connection detected",
-                            defaultSlot: IconPreferences.defaultSlot(for: .noNetwork),
-                            slot: $noNetworkSlot,
-                            onChange: {
-                                onSlotChanged()
-                                IconPreferences.save(noNetworkSlot, for: .noNetwork)
-                            },
-                            onReset: {
-                                noNetworkSlot = IconPreferences.defaultSlot(for: .noNetwork)
-                                onSlotChanged()
-                                IconPreferences.save(noNetworkSlot, for: .noNetwork)
-                            }
-                        )
-
-                        Divider().padding(.leading, 14)
-
-                        
-                        VStack(spacing: 0) {
-                            HStack(spacing: 10) {
-
-                                Button {
-                                    showSymbolBrowser = true
-                                } label: {
-                                    Label("Icon Sets", systemImage: "square.grid.2x2")
-                                        .font(.system(size: 11))
-                                        .foregroundStyle(.secondary)
-                                }
-                                .buttonStyle(.plain)
-
-                                
-                                if showSetSavedConfirmation {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .foregroundStyle(.green)
-                                            .font(.system(size: 11))
-                                        Text("Icon Set Saved")
-                                            .font(.system(size: 11, weight: .medium))
-                                            .foregroundStyle(.green)
-                                    }
-                                    .transition(.asymmetric(
-                                        insertion: .move(edge: .trailing).combined(with: .opacity),
-                                        removal:   .move(edge: .leading).combined(with: .opacity)
-                                    ))
-                                }
-
-                                if shouldShowSaveButton {
-                                    Button {
-                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
-                                            showSaveSetPanel.toggle()
-                                            if !showSaveSetPanel { saveSetName = "" }
-                                        }
-                                    } label: {
-                                        Label("Save edits as new set", systemImage: "bookmark.fill")
-                                            .font(.system(size: 11))
-                                            .foregroundStyle(showSaveSetPanel ? Color.accentColor : .secondary)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .transition(.opacity.combined(with: .scale))
-                                }
-
-                                Spacer()
-
-                                Button {
-                                    withAnimation {
-                                        IconPreferences.resetAll()
-                                        connectedSlot    = IconPreferences.slot(for: .connected)
-                                        blockedSlot      = IconPreferences.slot(for: .blocked)
-                                        noNetworkSlot    = IconPreferences.slot(for: .noNetwork)
-                                        showSaveSetPanel         = false
-                                        saveSetName              = ""
-                                        suppressSaveButton       = false
-                                        showSetSavedConfirmation = false
-                                    }
-                                } label: {
-                                    Label("Reset to Defaults", systemImage: "arrow.counterclockwise")
-                                        .font(.system(size: 11))
-                                        .foregroundStyle(.secondary)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                            .animation(.easeInOut(duration: 0.25), value: isModifiedFromDefault)
-                            .animation(.easeInOut(duration: 0.25), value: suppressSaveButton)
-                            .animation(.easeInOut(duration: 0.25), value: showSetSavedConfirmation)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 10)
-
-                            if showSaveSetPanel {
-                                Divider().padding(.horizontal, 14)
-
-                                HStack(spacing: 8) {
-                                    TextField("Name this set…", text: $saveSetName)
-                                        .textFieldStyle(.roundedBorder)
-                                        .font(.system(size: 12))
-
-                                    Button("Save") { saveCurrentSet() }
-                                        .buttonStyle(.borderedProminent)
-                                        .controlSize(.small)
-                                        .disabled(saveSetName.trimmingCharacters(in: .whitespaces).isEmpty)
-
-                                    Button {
-                                        withAnimation(.easeInOut(duration: 0.15)) {
-                                            showSaveSetPanel = false
-                                            saveSetName = ""
-                                        }
-                                    } label: {
-                                        Image(systemName: "xmark")
-                                            .font(.system(size: 11, weight: .medium))
-                                    }
-                                    .buttonStyle(.bordered)
-                                    .controlSize(.small)
-                                }
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 10)
-                                .transition(.move(edge: .top).combined(with: .opacity))
-                            }
-                        }
-                    }
-                }
-
-                SettingsSection(title: "VPN") {
-                    SettingsRow(
-                        icon: "lock.shield.fill",
-                        iconColor: .blue,
-                        title: "Show VPN Badge",
-                        subtitle: "Overlay a badge on the menu bar icon when a VPN tunnel is active",
-                        onTap: { showVPNBadge.toggle() }
-                    ) {
-                        Toggle("", isOn: $showVPNBadge)
-                            .labelsHidden()
-                            .onChange(of: showVPNBadge) { _, _ in
-                                NotificationCenter.default.post(name: .iconPreferencesChanged, object: nil)
-                            }
-                    }
-                }
-
-                SettingsSection(title: "Menu") {
-                    SettingsRow(
-                        icon: "wifi",
-                        iconColor: .blue,
-                        title: "Show Wi-Fi Signal Strength",
-                        subtitle: "Display a signal strength indicator next to the Wi-Fi network name",
-                        onTap: { showWiFiStrength.toggle() }
-                    ) {
-                        Toggle("", isOn: $showWiFiStrength)
-                            .labelsHidden()
-                    }
-                }
-
-                footerView
+            if updateStatus == .idle, let cached = UpdateChecker.cachedResult {
+                applyUpdateResult(cached, autoDismiss: false)
             }
-            .padding(20)
         }
-        .scrollContentBackground(.hidden)
-        .background(Color(.windowBackgroundColor))
+        .onReceive(NotificationCenter.default.publisher(for: .settingsWindowDidBecomeKey)) { _ in
+            isLaunchEnabled = LoginItemManager.shared.isEnabled()
+            resolveSelectedSet()
+        }
+        .alert("Launch at Login Failed", isPresented: Binding(
+            get: { loginItemError != nil },
+            set: { if !$0 { loginItemError = nil } }
+        )) {
+            Button("OK", role: .cancel) { loginItemError = nil }
+        } message: {
+            if let msg = loginItemError { Text(msg) }
+        }
     }
 
     // MARK: - Shared footer
@@ -695,7 +371,17 @@ struct SettingsView: View {
         .padding(.bottom, 4)
     }
 
-    // MARK: - Helpers
+    // MARK: - Saved feedback helper
+
+    /// Briefly shows a ✓ confirmation by flipping `binding` to true, then back to false after `duration` seconds.
+    private func showSavedFeedback(_ binding: Binding<Bool>, duration: Double = 2) {
+        withAnimation { binding.wrappedValue = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
+            withAnimation { binding.wrappedValue = false }
+        }
+    }
+
+    // MARK: - Interval helpers
 
     private func formatInterval(_ v: Double) -> String {
         v.truncatingRemainder(dividingBy: 1) == 0 ? String(Int(v)) : String(v)
@@ -703,85 +389,46 @@ struct SettingsView: View {
 
     private func applyInterval() {
         let value = Double(intervalText) ?? 0
-
-        // Enforce minimum of 30 seconds
         guard value >= 30 else {
             withAnimation { intervalInvalid = true }
             return
         }
-
         intervalInvalid = false
         interval        = value
         UserDefaults.standard.set(value, for: .refreshInterval)
         AppState.shared.restart()
-
-        withAnimation { intervalSaved = true }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            withAnimation { intervalSaved = false }
-        }
+        showSavedFeedback($intervalSaved)
     }
+
+    // MARK: - Ping URL helpers
 
     private func applyPingURL() {
         let trimmed = pingURL.trimmingCharacters(in: .whitespaces)
-
         if !trimmed.isEmpty {
             let isValid = URL(string: trimmed).flatMap { url in
                 url.scheme.map { ["http", "https"].contains($0) }
             } ?? false
-
             if !isValid {
                 withAnimation { pingURLInvalid = true }
                 return
             }
         }
-
         pingURLInvalid = false
         if trimmed.isEmpty {
             UserDefaults.standard.removeObject(for: .pingURL)
         } else {
             UserDefaults.standard.set(trimmed, for: .pingURL)
         }
-
-        withAnimation { pingURLSaved = true }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            withAnimation { pingURLSaved = false }
-        }
+        showSavedFeedback($pingURLSaved)
     }
 
     private func restoreDefaultPingURL() {
         UserDefaults.standard.removeObject(for: .pingURL)
         withAnimation { pingURL = "" }
-
-        withAnimation { pingURLSaved = true }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            withAnimation { pingURLSaved = false }
-        }
+        showSavedFeedback($pingURLSaved)
     }
 
-    private func saveCurrentSet() {
-        let trimmed = saveSetName.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty else { return }
-        let newSet = UserIconSet.from(
-            name: trimmed,
-            connected:  connectedSlot,
-            blocked:    blockedSlot,
-            noNetwork:  noNetworkSlot
-        )
-        userSetsStore.add(newSet)
-
-        withAnimation(.easeInOut(duration: 0.2)) {
-            showSaveSetPanel         = false
-            saveSetName              = ""
-            suppressSaveButton       = true
-            showSetSavedConfirmation = true
-        }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            withAnimation(.easeInOut(duration: 0.35)) {
-                showSetSavedConfirmation = false
-            }
-        }
-    }
+    // MARK: - Update helpers
 
     private var updateRowSubtitle: String {
         let version = "Version \(AppInfo.marketingVersion) (Build \(AppInfo.buildVersion))"
@@ -794,7 +441,6 @@ struct SettingsView: View {
         let timeFormatter = DateFormatter()
         timeFormatter.dateFormat = "h:mm a"
         let timeString = timeFormatter.string(from: date)
-
         if calendar.isDateInToday(date) {
             return "Checked today at \(timeString)"
         } else if calendar.isDateInYesterday(date) {
@@ -812,9 +458,7 @@ struct SettingsView: View {
             let now = Date()
             UserDefaults.standard.set(now, for: .lastUpdateCheck)
             lastCheckDate = now
-            withAnimation {
-                applyUpdateResult(result, autoDismiss: true)
-            }
+            withAnimation { applyUpdateResult(result, autoDismiss: true) }
         }
     }
 
@@ -843,173 +487,6 @@ struct SettingsView: View {
     private func openLatestRelease() {
         guard let url = cachedUpdateURL else { return }
         NSWorkspace.shared.open(url)
-    }
-}
-
-// MARK: - Icon Slot Row
-
-private struct IconSlotRow: View {
-
-    let label: String
-    let statusDescription: String
-    let defaultSlot: IconPreferences.Slot
-    @Binding var slot: IconPreferences.Slot
-    let onChange: () -> Void
-    let onReset:  () -> Void
-
-    private var colorBinding: Binding<Color> {
-        Binding(
-            get: { Color(slot.color) },
-            set: { slot.color = NSColor($0); onChange() }
-        )
-    }
-
-    private var symbolIsValid: Bool {
-        NSImage(systemSymbolName: slot.symbolName, accessibilityDescription: nil) != nil
-    }
-
-    private var isSlotModified: Bool {
-        guard let dc = defaultSlot.color.usingColorSpace(.sRGB),
-              let sc = slot.color.usingColorSpace(.sRGB) else { return true }
-        let colorChanged = abs(dc.redComponent   - sc.redComponent)   > 0.001 ||
-                           abs(dc.greenComponent - sc.greenComponent) > 0.001 ||
-                           abs(dc.blueComponent  - sc.blueComponent)  > 0.001
-        return slot.symbolName       != defaultSlot.symbolName ||
-               slot.menuLabel        != defaultSlot.menuLabel  ||
-               slot.menuLabelEnabled != defaultSlot.menuLabelEnabled ||
-               colorChanged
-    }
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-
-            VStack(alignment: .center, spacing: 6) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 9)
-                        .fill(Color(slot.color).opacity(0.15))
-                        .frame(width: 44, height: 44)
-                    if symbolIsValid {
-                        Image(systemName: slot.symbolName)
-                            .font(.system(size: 19, weight: .medium))
-                            .foregroundStyle(Color(slot.color))
-                    } else {
-                        Image(systemName: "questionmark")
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                Text(label)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.primary)
-                    .multilineTextAlignment(.center)
-
-                Text(statusDescription)
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(4)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(width: 110)
-
-            VStack(alignment: .leading, spacing: 10) {
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("SF Symbol Name")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(.secondary)
-
-                    TextField("e.g. wifi", text: Binding(
-                        get: { slot.symbolName },
-                        set: { slot.symbolName = $0; onChange() }
-                    ))
-                    .textFieldStyle(.roundedBorder)
-                    .font(.system(size: 12, design: .monospaced))
-
-                    if !symbolIsValid && !slot.symbolName.isEmpty {
-                        HStack(spacing: 4) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .font(.system(size: 9))
-                            Text("Symbol not found — check SF Symbols app")
-                                .font(.system(size: 10))
-                        }
-                        .foregroundStyle(.red)
-                    }
-                }
-
-                HStack(alignment: .bottom, spacing: 14) {
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 4) {
-                            Image(systemName: slot.menuLabelEnabled ? "checkmark.circle.fill" : "arrow.down.circle.fill")
-                                .font(.system(size: 10))
-                                .foregroundStyle(slot.menuLabelEnabled ? Color.accentColor : Color.primary.opacity(0.28))
-                                .animation(.easeInOut(duration: 0.15), value: slot.menuLabelEnabled)
-                            Text("Menu Bar Label")
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundStyle(slot.menuLabelEnabled ? Color.accentColor : Color.primary.opacity(0.28))
-                                .animation(.easeInOut(duration: 0.15), value: slot.menuLabelEnabled)
-                        }
-
-                        TextField("click to edit", text: Binding(
-                            get: { slot.menuLabel },
-                            set: {
-                                slot.menuLabel = String($0.prefix(15))
-                                let enabled = !slot.menuLabel.isEmpty
-                                if slot.menuLabelEnabled != enabled {
-                                    slot.menuLabelEnabled = enabled
-                                }
-                                onChange()
-                            }
-                        ))
-                        .textFieldStyle(.roundedBorder)
-                        .font(.system(size: 12))
-                        .frame(height: 28)
-                    }
-                    .frame(maxWidth: .infinity)
-
-                    VStack(alignment: .center, spacing: 4) {
-                        Text("Color")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(Color.primary.opacity(0.28))
-
-                        PositionedColorPicker(selection: colorBinding)
-                            .frame(width: 36, height: 28)
-                    }
-                    .frame(width: 44)
-
-                    VStack(alignment: .center, spacing: 4) {
-                        Text("Reset")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(isSlotModified ? Color.primary.opacity(0.28) : Color.primary.opacity(0.18))
-                            .animation(.easeInOut(duration: 0.15), value: isSlotModified)
-
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.15)) { onReset() }
-                        } label: {
-                            Image(systemName: "arrow.counterclockwise")
-                                .font(.system(size: 12, weight: .medium))
-                                .frame(width: 28, height: 28)
-                                .contentShape(Circle())
-                        }
-                        .buttonStyle(.plain)
-                        .background(
-                            Circle()
-                                .fill(Color.primary.opacity(isSlotModified ? 0.08 : 0.04))
-                                .frame(width: 28, height: 28)
-                        )
-                        .foregroundStyle(isSlotModified ? Color.primary.opacity(0.75) : Color.primary.opacity(0.18))
-                        .disabled(!isSlotModified)
-                        .help("Reset this state to default")
-                        .animation(.easeInOut(duration: 0.15), value: isSlotModified)
-                    }
-                    .frame(width: 44)
-                }
-            }
-            .frame(maxWidth: .infinity)
-        }
-        .padding(16)
     }
 }
 
@@ -1081,89 +558,6 @@ private struct SettingsRow<Control: View>: View {
         .onHover { hovering in
             if onTap != nil { isHovered = hovering }
         }
-        .onTapGesture {
-            onTap?()
-        }
-    }
-}
-
-// MARK: - Color Panel Positioning
-
-/// NSViewRepresentable that captures its screen frame and installs an NSEvent monitor
-/// to detect clicks on the ColorPicker swatch, then repositions NSColorPanel near it.
-private struct ColorPanelAnchor: NSViewRepresentable {
-    @Binding var screenFrame: CGRect
-    var onWillOpen: () -> Void
-
-    func makeNSView(context: Context) -> AnchorView {
-        AnchorView(onFrame: { screenFrame = $0 }, onWillOpen: onWillOpen)
-    }
-    func updateNSView(_ nsView: AnchorView, context: Context) {
-        nsView.onWillOpen = onWillOpen
-    }
-
-    class AnchorView: NSView {
-        var onFrame: (CGRect) -> Void
-        var onWillOpen: () -> Void
-        private var monitor: Any?
-
-        init(onFrame: @escaping (CGRect) -> Void, onWillOpen: @escaping () -> Void) {
-            self.onFrame = onFrame
-            self.onWillOpen = onWillOpen
-            super.init(frame: .zero)
-        }
-        required init?(coder: NSCoder) { fatalError() }
-
-        override func viewDidMoveToWindow() {
-            super.viewDidMoveToWindow()
-            if window != nil {
-                monitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
-                    guard let self, let window = self.window else { return event }
-                    let loc = event.locationInWindow
-                    // Expand hit area slightly to reliably cover the color swatch button
-                    let hitArea = self.convert(self.bounds, to: nil).insetBy(dx: -8, dy: -4)
-                    if hitArea.contains(loc) {
-                        // Pre-position synchronously BEFORE the event reaches NSColorWell,
-                        // so the panel opens directly at the right location with no flicker.
-                        self.onWillOpen()
-                    }
-                    return event
-                }
-            } else {
-                if let monitor {
-                    NSEvent.removeMonitor(monitor)
-                    self.monitor = nil
-                }
-            }
-        }
-
-        override func layout() {
-            super.layout()
-            guard let window else { return }
-            onFrame(window.convertToScreen(convert(bounds, to: nil)))
-        }
-    }
-}
-
-/// Wraps SwiftUI ColorPicker and repositions NSColorPanel near the button when opened.
-private struct PositionedColorPicker: View {
-    @Binding var selection: Color
-    @State private var anchorFrame: CGRect = .zero
-
-    var body: some View {
-        ColorPicker("", selection: $selection, supportsOpacity: false)
-            .labelsHidden()
-            .background(ColorPanelAnchor(screenFrame: $anchorFrame, onWillOpen: reposition))
-    }
-
-    private func reposition() {
-        let frame = anchorFrame
-        let panel = NSColorPanel.shared
-        // Use last-known panel width; fall back to default if panel has never been shown.
-        let panelWidth = panel.frame.width > 0 ? panel.frame.width : 224
-        panel.setFrameTopLeftPoint(NSPoint(
-            x: frame.midX - panelWidth / 2,
-            y: frame.minY
-        ))
+        .onTapGesture { onTap?() }
     }
 }

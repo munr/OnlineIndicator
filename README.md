@@ -5,20 +5,17 @@
 <h1 align="center">Online Indicator</h1>
 
 <p align="center">
-A macOS menu bar app that replaces the Wi-Fi icon with customizable status indicators.
+A macOS menu bar app that shows real internet connectivity at a glance.
 </p>
 <br>
 <p align="center">
   <a href="#"><img src="https://img.shields.io/badge/platform-macOS-lightgrey?logo=apple&style=flat&color=%23FF5C60"></a>
-  <a href="https://github.com/bornexplorer/OnlineIndicator/releases" target="_blank"><img src="https://img.shields.io/github/v/release/bornexplorer/OnlineIndicator?style=flat&color=%23FAC800"></a>
-  <a href="https://github.com/bornexplorer/OnlineIndicator/blob/main/LICENSE" target="_blank"><img src="https://img.shields.io/github/license/bornexplorer/OnlineIndicator?style=flat&color=%2334C759"></a>
-  <a href="https://ko-fi.com/bornexplorer" target="_blank"><img src="https://img.shields.io/badge/Ko--fi-FF5E5B?logo=ko-fi&logoColor=white"></a>
+  <a href="https://github.com/munr/OnlineIndicator/releases" target="_blank"><img src="https://img.shields.io/github/v/release/munr/OnlineIndicator?style=flat&color=%23FAC800"></a>
+  <a href="https://github.com/munr/OnlineIndicator/blob/main/LICENSE" target="_blank"><img src="https://img.shields.io/github/license/munr/OnlineIndicator?style=flat&color=%2334C759"></a>
 </p>
 <br>
 
-
-
-<img src=".github/assets/app-preview.png" alt="Online Indicator Preview" width="100%" />
+<img src=".github/assets/app-preview.png" alt="Online Indicator Preview" />
 
 ## Why Online Indicator?
 
@@ -29,28 +26,46 @@ The macOS WiFi icon only shows that you are connected to a router, not whether y
 ## Features
 
 🛜 **Ditch the boring Wi-Fi icon** <br>
-Your menu bar deserves better than a grey Wi-Fi symbol that tells you nothing. Online Indicator replaces it with a live status icon that actually means something: <br>
-- Green when you're online <br>
-- Yellow when something's off <br>
+Your menu bar deserves better than a grey Wi-Fi symbol that tells you nothing. Online Indicator replaces it with a live status icon that actually means something:
+
+- Green when you're online
+- Yellow when something's off
 - Red when there's no network
 
-🎨 **Make it yours** <br>
-Choose from 17 ready made Icon Sets or use any SF Symbol, set custom colors and labels for each state, and save your setup as your own Icon Set to switch anytime with a single tap.
+🎨 **Choose your icon set** <br>
+Pick from 17 ready-made icon sets — WiFi, Status, Shield, Globe, Network, and more — applied in one tap. The active set is shown at a glance in Settings.
+
+📋 **At-a-glance connection overview** <br>
+A card-style dropdown gives you a full picture of your connection the moment you click:
+
+- **Hero header** — your Wi-Fi network name, ISP name, and external IP address, all in one place
+- **Speed & latency bar** — live download speed, upload speed, and ping
+- **Network details** — your local IPv4 and IPv6 addresses, one tap to copy either
+- **Router & DNS** — your default gateway (router) IP and active DNS server addresses
+- **Settings & Quit** — a clean two-button footer to jump straight to preferences or exit
+
+📶 **Wi-Fi signal ring** <br>
+A colour-coded ring around the menu bar icon reflects your Wi-Fi signal strength in real time — green for strong, yellow, orange, or red as signal drops.
+
+🔒 **VPN indicator** <br>
+When a VPN is active, a styled pill badge appears next to your external IP in the menu header so you always know when you're tunnelled.
 
 📡 **Flexible monitoring** <br>
 Choose any URL to ping and set how often the check runs, from every 30 seconds to once an hour.
 
 👀 **Quick IP peek** <br>
-Your IPv4 and IPv6 are always one click away in the menu, tap to copy instantly.
+Your local IPv4, IPv6, and external IP are always one click away in the menu — tap to copy instantly.
 
 <br>
 
 ## Download & Install
 
 ### 1 · Download
+
 Head to the [**Latest Release**](../../releases/latest) page and grab the latest `.dmg` file.
 
 ### 2 · Install
+
 Open the `.dmg` and drag **Online Indicator** into your **Applications** folder. Done.
 
 ### 3 · First Launch
@@ -64,9 +79,11 @@ Open the `.dmg` and drag **Online Indicator** into your **Applications** folder.
 #### Option B — Terminal
 
 Paste this into Terminal and press Enter:
+
 ```bash
 xattr -dr com.apple.quarantine /Applications/Online\ Indicator.app
 ```
+
 Then open the app normally.
 
 > 💡 **Why does this happen?**

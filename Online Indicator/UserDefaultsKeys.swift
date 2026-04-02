@@ -5,17 +5,18 @@ extension UserDefaults {
     enum Key: String {
         case refreshInterval    = "refreshInterval"
         case pingURL            = "pingURL"
-        case userIconSets       = "userIconSets_v1"
         // Update checker
         case lastUpdateCheck    = "lastUpdateCheck"
         case lastUpdateTag      = "lastUpdateTag"
         case lastUpdateNotes    = "lastUpdateNotes"
         case lastUpdateDownload = "lastUpdateDownload"
         case lastUpdatePage     = "lastUpdatePage"
-        // VPN detection
-        case showVPNBadge       = "showVPNBadge"
-        // Menu display
-        case showWiFiStrength   = "showWiFiStrength"
+        // Icon preferences — composite keys built as "<prefix>.<statusKey>" by IconPreferences.
+        // The per-status suffix ("connected", "blocked", "noNetwork") is appended at runtime.
+        case iconSymbolPrefix       = "iconSymbol"
+        case iconColorPrefix        = "iconColor"
+        case iconLabelPrefix        = "iconLabel"
+        case iconLabelEnabledPrefix = "iconLabelEnabled"
     }
 
     func string(for key: Key) -> String? { string(forKey: key.rawValue) }

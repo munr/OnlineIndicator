@@ -1,9 +1,10 @@
 import Foundation
 
 /// A generic single-URL fetcher with an in-memory cache.
-/// Handles cancellation, TTL, and always delivers results on the main queue.
+/// Handles cancellation, TTL, and always delivers results on the main actor.
 /// Both ExternalIPFetcher and ISPFetcher were identical except for the URL and
 /// response transform — this class replaces both.
+@MainActor
 final class CachedFetcher {
 
     private static let cacheTTL: TimeInterval = 60
@@ -29,12 +30,12 @@ final class CachedFetcher {
     }
 
     /// Fetches the value, using the in-memory cache if still within the TTL.
-    /// Always calls `completion` on the main queue.
-    func fetch(completion: @escaping (String?) -> Void) {
+    /// Calls `completion` on the main actor.
+    func fetch(completion: @escaping @MainActor (String?) -> Void) {
         if let value = cachedValue,
            let time = cacheTime,
            Date().timeIntervalSince(time) < Self.cacheTTL {
-            DispatchQueue.main.async { completion(value) }
+            completion(value)
             return
         }
 
@@ -43,16 +44,19 @@ final class CachedFetcher {
 
         let task = session.dataTask(with: url) { [weak self] data, _, error in
             if let urlError = error as? URLError, urlError.code == .cancelled { return }
-            guard let self else { return }
-            self.currentTask = nil
-
-            var result: String?
-            if let data, let value = self.transform(data) {
-                self.cachedValue = value
-                self.cacheTime   = Date()
-                result = value
+            let result: String? = {
+                guard let data else { return nil }
+                return self?.transform(data)
+            }()
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.currentTask = nil
+                if let result {
+                    self.cachedValue = result
+                    self.cacheTime   = Date()
+                }
+                completion(result)
             }
-            DispatchQueue.main.async { completion(result) }
         }
         currentTask = task
         task.resume()
