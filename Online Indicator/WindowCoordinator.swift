@@ -72,11 +72,7 @@ final class WindowCoordinator: NSObject, NSWindowDelegate {
     }
 
     private func bringSettingsWindowToFront(_ window: NSWindow) {
-        NSRunningApplication.current.activate(options: [.activateAllWindows, .activateIgnoringOtherApps])
         NSApp.activate(ignoringOtherApps: true)
-        window.orderFrontRegardless()
-        window.makeMain()
-        window.makeKey()
         window.makeKeyAndOrderFront(nil)
         NotificationCenter.default.post(name: .settingsWindowDidBecomeKey, object: nil)
     }
