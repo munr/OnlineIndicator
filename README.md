@@ -103,6 +103,12 @@ The only outbound network request the app makes is the connectivity probe, a sim
 
 <br>
 
+## Acknowledgements
+
+Online Indicator was forked from and inspired by [bornexplorer/OnlineIndicator](https://github.com/bornexplorer/OnlineIndicator). This project has since diverged significantly, but the original work provided the foundation and the idea.
+
+<br>
+
 ## License
 
 [MIT License](LICENSE)
