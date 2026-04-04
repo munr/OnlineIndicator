@@ -5,20 +5,20 @@
         <description>Release updates for Online Indicator</description>
         <language>en</language>
         <item>
+            <title>1.5.5</title>
+            <pubDate>Sat, 04 Apr 2026 19:25:19 +0000</pubDate>
+            <sparkle:version>1.5.5</sparkle:version>
+            <sparkle:shortVersionString>1.5.5</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.6</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/munr/mac-online-indicator/releases/download/v1.5.5/OnlineIndicator-v1.5.5.dmg" length="3693330" type="application/octet-stream" sparkle:edSignature="cDZnT2+PI4XbaTae46h5nujsp4/7mKtAPJjrDmilruIEMs+sW6pgvxsri+wpjSO+jFyrMozyqxVw4mUpf2uhDQ=="/>
+        </item>
+        <item>
             <title>1.5.4</title>
             <pubDate>Sat, 04 Apr 2026 18:48:20 +0000</pubDate>
             <sparkle:version>1.5.4</sparkle:version>
             <sparkle:shortVersionString>1.5.4</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.6</sparkle:minimumSystemVersion>
             <enclosure url="https://github.com/munr/mac-online-indicator/releases/download/v1.5.4/OnlineIndicator-v1.5.4.dmg" length="3692581" type="application/octet-stream" sparkle:edSignature="6CcaZ+SGZYLHrvBzyJK3K8RtYYQLQXBT8OkDB8Ge503SUkbk4YsMx/6etndX8R4qpe/+z3L90/2RF0LQdq5ICQ=="/>
-        </item>
-        <item>
-            <title>1.5.2</title>
-            <pubDate>Sat, 04 Apr 2026 18:13:07 +0000</pubDate>
-            <sparkle:version>1.5.2</sparkle:version>
-            <sparkle:shortVersionString>1.5.2</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.6</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/munr/mac-online-indicator/releases/download/v1.5.2/OnlineIndicator-v1.5.2.dmg" length="3690146" type="application/octet-stream"/>
         </item>
         <item>
             <title>1.5.3</title>
