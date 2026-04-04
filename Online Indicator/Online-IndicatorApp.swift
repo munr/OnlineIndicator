@@ -143,6 +143,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         fetchExternalData()
     }
 
+    func menuDidClose(_ menu: NSMenu) {
+        // NSMenu does not dispatch mouseExited to custom-view items on close, so hover
+        // highlights can persist as stale state. Reset them all here.
+        menu.items.compactMap(\.view).forEach { resetHoverViews(in: $0) }
+    }
+
+    private func resetHoverViews(in view: NSView) {
+        (view as? MenuHoverView)?.resetHighlight()
+        view.subviews.forEach { resetHoverViews(in: $0) }
+    }
+
     /// Updates address rows, clearing everything when there is no real connectivity
     /// (no WiFi and no routable IPv4). Detects WiFi drop to immediately clear EXT/ISP.
     private func updateMenuAddresses(_ addresses: IPAddressProvider.Addresses) {

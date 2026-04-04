@@ -29,4 +29,8 @@ class MenuHoverView: NSView {
 
     override func mouseEntered(with event: NSEvent) { highlightView.isHidden = false }
     override func mouseExited(with event: NSEvent)  { highlightView.isHidden = true }
+
+    func resetHighlight() {
+        highlightView.isHidden = true
+    }
 }
