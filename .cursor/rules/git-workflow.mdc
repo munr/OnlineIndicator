@@ -1,0 +1,27 @@
+---
+description: Git branching and PR workflow for this project
+alwaysApply: true
+---
+
+# Git Workflow
+
+- **Never commit directly to `main`.** Always create a feature branch first, even for small changes.
+- Branch naming: `feature/<short-description>` for new features, `fix/<short-description>` for bug fixes.
+- Open a pull request to merge into `main`.
+
+## Build Commands
+
+```bash
+# Debug build
+xcodebuild build \
+  -project "Online Indicator.xcodeproj" \
+  -scheme "Online Indicator" \
+  -configuration Debug
+
+# Run tests
+xcodebuild test \
+  -project "Online Indicator.xcodeproj" \
+  -scheme "OnlineIndicatorTests"
+```
+
+Releases are built by CI (`.github/workflows/build-dmg.yml`) on `v*` tags. `MARKETING_VERSION` is injected from the git tag — do not hard-code it.
