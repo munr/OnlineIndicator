@@ -7,6 +7,9 @@ on:
       - "v*"
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: macos-26
@@ -57,3 +60,51 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: "OnlineIndicator-${{ github.ref_name }}.dmg"
+
+      # Regenerates appcast/appcast.xml on main using Sparkle’s generate_appcast.
+      # Add repo secret SPARKLE_EDDSA_PRIVATE_KEY (EdDSA seed, base64) matching INFOPLIST_KEY_SUPublicEDKey in the Xcode project.
+      - name: Checkout main for appcast
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: appcast-branch
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Sparkle generate_appcast
+        run: |
+          curl -sSL "https://github.com/sparkle-project/Sparkle/releases/download/2.6.4/Sparkle-2.6.4.tar.xz" -o /tmp/sparkle.txz
+          tar xf /tmp/sparkle.txz bin/generate_appcast
+
+      - name: Regenerate appcast and push to main
+        env:
+          SPARKLE_EDDSA_PRIVATE_KEY: ${{ secrets.SPARKLE_EDDSA_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          DMG_NAME="OnlineIndicator-${TAG}.dmg"
+          if [ -z "${SPARKLE_EDDSA_PRIVATE_KEY:-}" ]; then
+            echo "::warning::SPARKLE_EDDSA_PRIVATE_KEY secret not set; skipping appcast update."
+            exit 0
+          fi
+          test -f "$DMG_NAME"
+          mkdir -p appcast-staging
+          cp "$DMG_NAME" "appcast-staging/${DMG_NAME}"
+          mkdir -p "appcast-branch/appcast"
+          if [ -f "appcast-branch/appcast/appcast.xml" ]; then
+            cp "appcast-branch/appcast/appcast.xml" "appcast-staging/appcast.xml"
+          fi
+          echo "${SPARKLE_EDDSA_PRIVATE_KEY}" | ./bin/generate_appcast \
+            --ed-key-file - \
+            --download-url-prefix "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/" \
+            -o "appcast-branch/appcast/appcast.xml" \
+            "appcast-staging"
+          cd appcast-branch
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add appcast/appcast.xml
+          if git diff --staged --quiet; then
+            echo "No appcast changes to commit."
+          else
+            git commit -m "Update Sparkle appcast for ${TAG}"
+            git push origin HEAD:main
+          fi

@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import Sparkle
 
 @main
 struct OnlineIndicatorApp: App {
@@ -20,6 +21,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem!
     private let menuBuilder       = MenuBuilder()
     private let windowCoordinator = WindowCoordinator()
+    private lazy var updaterController = SPUStandardUpdaterController(
+        startingUpdater: true,
+        updaterDelegate: nil,
+        userDriverDelegate: nil
+    )
     private let externalIPFetcher = CachedFetcher.externalIP
     private let ispFetcher        = CachedFetcher.isp
 
@@ -46,6 +52,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // MARK: - Setup
 
     private func startApp() {
+        windowCoordinator.onCheckForSparkleUpdates = { [weak self] in
+            self?.updaterController.checkForUpdates(nil)
+        }
         setupStatusItem()
 
         AppState.shared.statusUpdateHandler = { [weak self] status, addresses in
@@ -93,10 +102,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             self.showLaunchTooltip()
-        }
-
-        UpdateChecker.checkIfNeeded { _ in
-            // Result is persisted; SettingsView reads the cache on next open.
         }
 
         NotificationCenter.default.addObserver(

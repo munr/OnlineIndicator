@@ -5,12 +5,6 @@ extension UserDefaults {
     enum Key: String {
         case refreshInterval    = "refreshInterval"
         case pingURL            = "pingURL"
-        // Update checker
-        case lastUpdateCheck    = "lastUpdateCheck"
-        case lastUpdateTag      = "lastUpdateTag"
-        case lastUpdateNotes    = "lastUpdateNotes"
-        case lastUpdateDownload = "lastUpdateDownload"
-        case lastUpdatePage     = "lastUpdatePage"
         // Icon preferences — composite keys built as "<prefix>.<statusKey>" by IconPreferences.
         // The per-status suffix ("connected", "blocked", "noNetwork") is appended at runtime.
         case iconSymbolPrefix       = "iconSymbol"
