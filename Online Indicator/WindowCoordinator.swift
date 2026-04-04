@@ -8,6 +8,9 @@ final class WindowCoordinator: NSObject, NSWindowDelegate {
     private var onboardingWindow: NSWindow?
     private var settingsWindow: NSWindow?
 
+    /// Wired by `AppDelegate` to Sparkle’s manual “Check for Updates” action.
+    var onCheckForSparkleUpdates: (() -> Void)?
+
     // MARK: - Onboarding
 
     func showOnboarding(onStart: @escaping () -> Void) {
@@ -43,7 +46,10 @@ final class WindowCoordinator: NSObject, NSWindowDelegate {
             styleMask: [.titled, .closable, .resizable]
         )
         window.title = AppInfo.appName
-        window.contentView = NSHostingView(rootView: SettingsView())
+        let settings = SettingsView(checkForSparkleUpdates: { [weak self] in
+            self?.onCheckForSparkleUpdates?()
+        })
+        window.contentView = NSHostingView(rootView: settings)
         window.delegate = self
         settingsWindow = window
         bringSettingsWindowToFront(window)

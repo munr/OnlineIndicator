@@ -3,6 +3,9 @@ import AppKit
 
 struct SettingsView: View {
 
+    /// Invokes Sparkle’s update UI (same as automatic checks, but immediate).
+    var checkForSparkleUpdates: () -> Void = {}
+
     @State private var interval: Double = {
         let v = UserDefaults.standard.double(for: .refreshInterval)
         return v == 0 ? 60 : v
@@ -15,17 +18,6 @@ struct SettingsView: View {
     @State private var pingURLInvalid  = false
     @State private var isLaunchEnabled = false
     @State private var loginItemError: String?
-
-    enum UpdateStatus: Equatable {
-        case idle, checking
-        case available(tag: String, notes: String?)
-        case upToDate
-        case error(String)
-    }
-    @State private var updateStatus: UpdateStatus = .idle
-    @State private var cachedUpdateURL: URL?
-    @State private var showChangelog = false
-    @State private var lastCheckDate: Date? = UserDefaults.standard.object(for: .lastUpdateCheck) as? Date
 
     @State private var showIconSetPicker = false
     @State private var selectedIconSetID: UUID?
@@ -82,83 +74,12 @@ struct SettingsView: View {
                     SettingsRow(
                         icon: "arrow.down.circle.fill",
                         iconColor: .blue,
-                        title: "Check for Updates",
-                        subtitle: updateRowSubtitle
+                        title: "Software Update",
+                        subtitle: "Version \(AppInfo.marketingVersion) (Build \(AppInfo.buildVersion))\nUpdates use Sparkle and are checked automatically."
                     ) {
-                        HStack(spacing: 8) {
-                            switch updateStatus {
-                            case .idle:
-                                Button("Check") { checkForUpdates() }
-                                    .buttonStyle(.bordered)
-                                    .controlSize(.small)
-                                    .transition(.opacity.combined(with: .scale))
-                            case .checking:
-                                HStack(spacing: 6) {
-                                    ProgressView()
-                                        .controlSize(.small)
-                                        .scaleEffect(0.8)
-                                    Text("Checking…")
-                                        .font(.system(size: 12))
-                                        .foregroundStyle(.secondary)
-                                }
-                                .transition(.opacity)
-                            case .upToDate:
-                                HStack(spacing: 4) {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(.green)
-                                    Text("Up to date")
-                                        .foregroundStyle(.green)
-                                }
-                                .font(.system(size: 12))
-                                .transition(.opacity.combined(with: .scale))
-                            case .available(let tag, let notes):
-                                HStack(spacing: 6) {
-                                    Button("Update to \(tag)") { openLatestRelease() }
-                                        .buttonStyle(.borderedProminent)
-                                        .controlSize(.small)
-                                    if notes != nil {
-                                        Button {
-                                            withAnimation(.easeInOut(duration: 0.2)) {
-                                                showChangelog.toggle()
-                                            }
-                                        } label: {
-                                            Image(systemName: showChangelog ? "chevron.up" : "chevron.down")
-                                                .font(.system(size: 10, weight: .semibold))
-                                        }
-                                        .buttonStyle(.bordered)
-                                        .controlSize(.small)
-                                    }
-                                }
-                                .transition(.opacity.combined(with: .scale))
-                            case .error(let msg):
-                                HStack(spacing: 4) {
-                                    Image(systemName: "exclamationmark.circle.fill")
-                                        .foregroundStyle(.red)
-                                    Text(msg)
-                                        .foregroundStyle(.red)
-                                        .lineLimit(1)
-                                }
-                                .font(.system(size: 11))
-                                .transition(.opacity)
-                            }
-                        }
-                        .animation(.easeInOut(duration: 0.2), value: updateStatus)
-                    }
-
-                    if case .available(_, let notes) = updateStatus, let notes, showChangelog {
-                        ScrollView {
-                            Text(notes)
-                                .font(.system(size: 11))
-                                .foregroundStyle(.secondary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(10)
-                        }
-                        .frame(maxHeight: 120)
-                        .background(Color(.textBackgroundColor).opacity(0.5))
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
-                        .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Color.primary.opacity(0.08)))
-                        .padding(.top, 4)
-                        .transition(.move(edge: .top).combined(with: .opacity))
+                        Button("Check for Updates…") { checkForSparkleUpdates() }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
                     }
                 }
 
@@ -339,10 +260,6 @@ struct SettingsView: View {
             intervalText    = formatInterval(interval)
             pingURL         = UserDefaults.standard.string(for: .pingURL) ?? ""
             resolveSelectedSet()
-
-            if updateStatus == .idle, let cached = UpdateChecker.cachedResult {
-                applyUpdateResult(cached, autoDismiss: false)
-            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .settingsWindowDidBecomeKey)) { _ in
             isLaunchEnabled = LoginItemManager.shared.isEnabled()
@@ -428,66 +345,6 @@ struct SettingsView: View {
         showSavedFeedback($pingURLSaved)
     }
 
-    // MARK: - Update helpers
-
-    private var updateRowSubtitle: String {
-        let version = "Version \(AppInfo.marketingVersion) (Build \(AppInfo.buildVersion))"
-        guard let date = lastCheckDate else { return version }
-        return "\(version)\n\(formattedCheckDate(date))"
-    }
-
-    private func formattedCheckDate(_ date: Date) -> String {
-        let calendar = Calendar.current
-        let timeFormatter = DateFormatter()
-        timeFormatter.dateFormat = "h:mm a"
-        let timeString = timeFormatter.string(from: date)
-        if calendar.isDateInToday(date) {
-            return "Checked today at \(timeString)"
-        } else if calendar.isDateInYesterday(date) {
-            return "Checked yesterday at \(timeString)"
-        } else {
-            let dateFormatter = DateFormatter()
-            dateFormatter.dateFormat = "MMM d"
-            return "Checked \(dateFormatter.string(from: date))"
-        }
-    }
-
-    private func checkForUpdates() {
-        withAnimation { updateStatus = .checking }
-        UpdateChecker.check { result in
-            let now = Date()
-            UserDefaults.standard.set(now, for: .lastUpdateCheck)
-            lastCheckDate = now
-            withAnimation { applyUpdateResult(result, autoDismiss: true) }
-        }
-    }
-
-    private func applyUpdateResult(_ result: UpdateChecker.UpdateResult, autoDismiss: Bool) {
-        switch result {
-        case .upToDate:
-            updateStatus = .upToDate
-            if autoDismiss {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
-                    withAnimation { updateStatus = .idle }
-                }
-            }
-        case .updateAvailable(let tag, let notes, let downloadURL, let pageURL):
-            cachedUpdateURL = downloadURL ?? pageURL
-            updateStatus = .available(tag: tag, notes: notes)
-        case .error(let msg):
-            updateStatus = .error(msg)
-            if autoDismiss {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
-                    withAnimation { updateStatus = .idle }
-                }
-            }
-        }
-    }
-
-    private func openLatestRelease() {
-        guard let url = cachedUpdateURL else { return }
-        NSWorkspace.shared.open(url)
-    }
 }
 
 // MARK: - Section container
