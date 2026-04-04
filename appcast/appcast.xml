@@ -1,8 +1,16 @@
-<?xml version="1.0" encoding="utf-8"?>
-<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
-	<channel>
-		<title>Online Indicator</title>
-		<description>Release updates for Online Indicator</description>
-		<language>en</language>
-	</channel>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+    <channel>
+        <title>Online Indicator</title>
+        <description>Release updates for Online Indicator</description>
+        <language>en</language>
+        <item>
+            <title>1.5.2</title>
+            <pubDate>Sat, 04 Apr 2026 18:13:07 +0000</pubDate>
+            <sparkle:version>6102f1e</sparkle:version>
+            <sparkle:shortVersionString>1.5.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.6</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/munr/mac-online-indicator/releases/download/v1.5.2/OnlineIndicator-v1.5.2.dmg" length="3690146" type="application/octet-stream"/>
+        </item>
+    </channel>
 </rss>
