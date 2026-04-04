@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Git Workflow
+
+- **Never commit directly to `main`.** Always create a feature branch before starting any work, even small changes.
+- Branch naming: `feature/<short-description>` for new features, `fix/<short-description>` for bug fixes.
+- Open a pull request to merge into `main`.
+
 ## Build & Run
 
 Open `Online Indicator.xcodeproj` in Xcode and use the standard Run/Build commands, or from the command line:
