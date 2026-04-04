@@ -1,0 +1,56 @@
+---
+description: Swift & macOS conventions for this project
+globs: **/*.swift
+alwaysApply: false
+---
+
+# Swift Conventions — Online Indicator
+
+## Architecture
+
+- This is a **menu bar only** app. There is no main window — never add one.
+- Entry point is `Online-IndicatorApp.swift`: `@main` struct `OnlineIndicatorApp` uses `@NSApplicationDelegateAdaptor(AppDelegate.self)`. `AppDelegate` owns the `NSStatusItem`.
+- `AppState` is the single source of truth for `ConnectionStatus`, `isVPNActive`, the refresh timer, and the `NetworkSpeedMonitor`. Do not duplicate this state elsewhere.
+- Settings changes must call `AppState.restart()` to reset the timer and probe immediately.
+- Window management (Settings, Onboarding — both `NSWindow`-backed SwiftUI) goes through `WindowCoordinator`.
+- Settings persistence goes through `UserDefaults`. All keys **must** be registered in `UserDefaultsKeys.swift` as `UserDefaults.Key` enum cases before use.
+- New settings UI must use `SettingsSection` / `SettingsRow` components — see `SettingsView.swift` for the established pattern.
+
+## Icon Rendering
+
+- `StatusIconRenderer.render(for:wifiName:isVPNActive:)` is **stateless** — keep it that way. It reads `IconPreferences` and returns an `Output`; it never writes state.
+- When `isVPNActive` is true, `render` composites a `lock.shield.fill` badge onto the icon — handle this in the renderer, not in `AppDelegate`.
+- Changes to icon appearance must post the `iconPreferencesChanged` notification so all observers update consistently.
+
+## Menu Updates
+
+- The menu uses **view-backed `NSMenuItem`s** throughout — never use title/action-based items for content rows.
+- Static rows (IPv4, IPv6, Gateway) are updated via stored `MenuInfoRowView?` references — do not rebuild the menu on each update.
+- DNS rows are dynamic: tag = `dnsTag = 800`. Remove all items with that tag, then re-insert. There is no `knownNetworksTag`.
+- `MenuHeroHeaderView` owns the WiFi name/RSSI, external IP, ISP, VPN badge, and connection status display.
+- `MenuStatsBarView` owns ping, download, and upload display.
+
+## Networking
+
+- `ConnectivityChecker` probes `captive.apple.com` (or a custom URL). `.connected` requires HTTP 200–399 **and** body contains `"Success"` for the default URL; HTTP 200–399 alone is sufficient for custom URLs.
+- Network path changes are debounced 1 s inside `AppState` — do not add additional debounce/delay layers on top.
+- `IPAddressProvider.current()` reads live IPv4/IPv6/gateway/DNS/WiFi name+RSSI/VPN state. It is intentionally not cached; call it once per cycle and pass the snapshot to all handlers.
+- VPN is detected via `utun*`/`ipsec*` interfaces that are UP + RUNNING with an IPv4 address.
+
+## Speed Monitoring
+
+- `NetworkSpeedMonitor` is owned by `AppState` — do not create additional instances.
+- Speed tests are triggered explicitly (app start, WiFi SSID change, user tap). There is no background speed-polling timer.
+- Ping latency is updated on every connectivity check via the `ConnectivityChecker` elapsed time — it does not require a separate probe.
+
+## External Data
+
+- Use `CachedFetcher` (TTL 60 s) for any external HTTP lookups that should survive rapid re-queries.
+- Invalidate caches on WiFi drop or VPN state change — see `AppDelegate.invalidateExternalCaches()`.
+
+## Code Style
+
+- Prefer `guard` for early exits over nested `if`.
+- Avoid force-unwraps (`!`) except in `@IBOutlet` / test helpers where a crash is the correct failure mode.
+- Use `async/await` for new async code; do not introduce new callback-based concurrency patterns.
+- Keep files focused — one primary type per file, named to match.
