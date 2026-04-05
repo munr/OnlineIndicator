@@ -5,6 +5,14 @@
         <description>Release updates for Online Indicator</description>
         <language>en</language>
         <item>
+            <title>1.5.9</title>
+            <pubDate>Sun, 05 Apr 2026 18:59:58 +0000</pubDate>
+            <sparkle:version>1.5.9</sparkle:version>
+            <sparkle:shortVersionString>1.5.9</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.6</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/munr/mac-online-indicator/releases/download/v1.5.9/OnlineIndicator-v1.5.9.dmg" length="3700742" type="application/octet-stream" sparkle:edSignature="vPvi7ovGa93QciIIqiSZjflWQk8XH50PW2ypIO5HLsDJHUoseD3qaFW5txj4UNg/EkHFURlAhBWt8OQt67f8Dw=="/>
+        </item>
+        <item>
             <title>1.5.8</title>
             <pubDate>Sun, 05 Apr 2026 14:10:59 +0000</pubDate>
             <sparkle:version>1.5.8</sparkle:version>
@@ -19,14 +27,6 @@
             <sparkle:shortVersionString>1.5.7</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.6</sparkle:minimumSystemVersion>
             <enclosure url="https://github.com/munr/mac-online-indicator/releases/download/v1.5.7/OnlineIndicator-v1.5.7.dmg" length="3696476" type="application/octet-stream" sparkle:edSignature="RkzKHaKUwpO+LE3K/LvqQZNPTgCqYw418XHOg+U2zmDnYsddYj2/x2QLNwjXTbU5WVz9OvyCDXX/RXPXNEDlAA=="/>
-        </item>
-        <item>
-            <title>1.5.6</title>
-            <pubDate>Sat, 04 Apr 2026 19:42:59 +0000</pubDate>
-            <sparkle:version>1.5.6</sparkle:version>
-            <sparkle:shortVersionString>1.5.6</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.6</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/munr/mac-online-indicator/releases/download/v1.5.6/OnlineIndicator-v1.5.6.dmg" length="3692646" type="application/octet-stream" sparkle:edSignature="rH2h5LKGbstZKTCog5N87vDZDq26iGDRzY6W7FbIwPep/qlRgN+v3HWVSmUIZe5FaWmNkXJj/RGKtJphjxzQDQ=="/>
         </item>
     </channel>
 </rss>
