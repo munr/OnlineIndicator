@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import CoreLocation
 import Sparkle
 
 @main
@@ -16,7 +17,7 @@ struct OnlineIndicatorApp: App {
 
 // MARK: - App Delegate
 
-class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
+class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, CLLocationManagerDelegate {
 
     private var statusItem: NSStatusItem!
     private let menuBuilder       = MenuBuilder()
@@ -31,6 +32,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private var currentStatus: AppState.ConnectionStatus = .noNetwork
     private var lastKnownWifiName: String? = nil
+    private var locationManager: CLLocationManager?
 
     // MARK: - Lifecycle
 
@@ -100,6 +102,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         AppState.shared.start()
 
+        requestLocationPermissionIfNeeded()
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             self.showLaunchTooltip()
         }
@@ -132,6 +136,26 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusItem.menu = menu
 
         applyIcon(for: .noNetwork, wifiName: nil, isVPNActive: false)
+    }
+
+    // MARK: - Location Permission (required for Wi-Fi SSID on macOS)
+
+    private func requestLocationPermissionIfNeeded() {
+        let lm = CLLocationManager()
+        lm.delegate = self
+        locationManager = lm
+        if lm.authorizationStatus == .notDetermined {
+            lm.requestWhenInUseAuthorization()
+        }
+    }
+
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        switch manager.authorizationStatus {
+        case .authorizedAlways, .authorizedWhenInUse:
+            AppState.shared.restart()
+        default:
+            break
+        }
     }
 
     // MARK: - NSMenuDelegate
