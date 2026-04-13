@@ -5,6 +5,8 @@ extension UserDefaults {
     enum Key: String {
         case refreshInterval    = "refreshInterval"
         case pingURL            = "pingURL"
+        case showInternalIPv4   = "showInternalIPv4"
+        case showInternalIPv6   = "showInternalIPv6"
         // Icon preferences — composite keys built as "<prefix>.<statusKey>" by IconPreferences.
         // The per-status suffix ("connected", "blocked", "noNetwork") is appended at runtime.
         case iconSymbolPrefix       = "iconSymbol"

@@ -15,6 +15,11 @@ final class MenuBuilder: NSObject {
     private var ipv6RowView:    MenuInfoRowView?
     private var gatewayRowView: MenuInfoRowView?
 
+    private var ipv4MenuItem:            NSMenuItem?
+    private var ipv6MenuItem:            NSMenuItem?
+    private var networkSectionSeparator: NSMenuItem?
+    private var networkSectionHeader:    NSMenuItem?
+
     private let dnsTag = 800
 
     private(set) var lastIPv4:       String?
@@ -69,8 +74,12 @@ final class MenuBuilder: NSObject {
         m.addItem(statsItem)
 
         // 3. NETWORK section
-        m.addItem(.separator())
-        m.addItem(makeSectionItem(title: "NETWORK"))
+        let networkSep = NSMenuItem.separator()
+        networkSectionSeparator = networkSep
+        m.addItem(networkSep)
+        let networkHeader = makeSectionItem(title: "NETWORK")
+        networkSectionHeader = networkHeader
+        m.addItem(networkHeader)
 
         let ipv4Row = MenuInfoRowView(frame: NSRect(x: 0, y: 0, width: MenuLayout.menuWidth, height: MenuLayout.rowHeight))
         ipv4Row.configure(label: "Internal IPv4", value: menuNoValue, available: false)
@@ -81,6 +90,7 @@ final class MenuBuilder: NSObject {
         ipv4RowView = ipv4Row
         let ipv4Item = NSMenuItem()
         ipv4Item.view = ipv4Row
+        ipv4MenuItem = ipv4Item
         m.addItem(ipv4Item)
 
         let ipv6Row = MenuInfoRowView(frame: NSRect(x: 0, y: 0, width: MenuLayout.menuWidth, height: MenuLayout.rowHeight))
@@ -92,6 +102,7 @@ final class MenuBuilder: NSObject {
         ipv6RowView = ipv6Row
         let ipv6Item = NSMenuItem()
         ipv6Item.view = ipv6Row
+        ipv6MenuItem = ipv6Item
         m.addItem(ipv6Item)
 
         // 4. ROUTER section
@@ -122,7 +133,7 @@ final class MenuBuilder: NSObject {
         m.addItem(dnsItem)
 
         // 5. Footer
-        let footer = MenuFooterView(frame: NSRect(x: 0, y: 0, width: MenuLayout.menuWidth, height: 54))
+        let footer = MenuFooterView(frame: NSRect(x: 0, y: 0, width: MenuLayout.menuWidth, height: 44))
         footer.onSettings = { [weak self] in self?.onOpenSettings?() }
         footer.onQuit     = { [weak self] in self?.onQuit?() }
         let footerItem = NSMenuItem()
@@ -204,6 +215,18 @@ final class MenuBuilder: NSObject {
         }
 
         renderedDNSServers = servers
+    }
+
+    // MARK: - Visibility Preferences
+
+    func applyVisibilityPreferences() {
+        let showIPv4 = UserDefaults.standard.bool(for: .showInternalIPv4, default: true)
+        let showIPv6 = UserDefaults.standard.bool(for: .showInternalIPv6, default: true)
+        ipv4MenuItem?.isHidden = !showIPv4
+        ipv6MenuItem?.isHidden = !showIPv6
+        let hideSection = !showIPv4 && !showIPv6
+        networkSectionSeparator?.isHidden = hideSection
+        networkSectionHeader?.isHidden    = hideSection
     }
 
     // MARK: - Connection Status
