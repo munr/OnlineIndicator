@@ -165,6 +165,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, CLLocationMa
         let addresses = IPAddressProvider.current()
         updateMenuAddresses(addresses)
         fetchExternalData()
+        menuBuilder.applyVisibilityPreferences()
     }
 
     func menuDidClose(_ menu: NSMenu) {

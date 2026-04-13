@@ -22,6 +22,9 @@ struct SettingsView: View {
     @State private var showIconSetPicker = false
     @State private var selectedIconSetID: UUID?
 
+    @AppStorage("showInternalIPv4") private var showInternalIPv4 = true
+    @AppStorage("showInternalIPv6") private var showInternalIPv6 = true
+
     // MARK: - Icon set helpers
 
     private var currentIconSetName: String {
@@ -98,6 +101,30 @@ struct SettingsView: View {
                         IconSetPickerView(selectedID: selectedIconSetID) { set in
                             applyIconSet(set)
                         }
+                    }
+                }
+
+                SettingsSection(title: "Menu Content") {
+                    SettingsRow(
+                        icon: "network",
+                        iconColor: .blue,
+                        title: "Show Internal IPv4",
+                        subtitle: "Display the internal IPv4 address in the menu",
+                        onTap: { showInternalIPv4.toggle() }
+                    ) {
+                        Toggle("", isOn: $showInternalIPv4).labelsHidden()
+                    }
+
+                    Divider().padding(.leading, 56)
+
+                    SettingsRow(
+                        icon: "network",
+                        iconColor: .indigo,
+                        title: "Show Internal IPv6",
+                        subtitle: "Display the internal IPv6 address in the menu",
+                        onTap: { showInternalIPv6.toggle() }
+                    ) {
+                        Toggle("", isOn: $showInternalIPv6).labelsHidden()
                     }
                 }
 
