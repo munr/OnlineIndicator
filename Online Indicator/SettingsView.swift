@@ -104,7 +104,7 @@ struct SettingsView: View {
                     }
                 }
 
-                SettingsSection(title: "Menu Content") {
+                SettingsSection(title: "Menu Options") {
                     SettingsRow(
                         icon: "network",
                         iconColor: .blue,
