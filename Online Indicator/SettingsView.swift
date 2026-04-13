@@ -78,7 +78,7 @@ struct SettingsView: View {
                         icon: "arrow.down.circle.fill",
                         iconColor: .blue,
                         title: "Software Update",
-                        subtitle: "\(AppInfo.fullVersionString)\nUpdates use Sparkle and are checked automatically."
+                        subtitle: "Current: \(AppInfo.fullVersionString)"
                     ) {
                         Button("Check for Updates…") { checkForSparkleUpdates() }
                             .buttonStyle(.bordered)
